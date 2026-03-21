@@ -1,1 +1,2236 @@
-{}
+{
+  "metadata": {
+    "version": "1.0.0",
+    "description": "Lebanese dialect medical terminology mapped to MSA and English medical terms",
+    "dialect": "Lebanese Arabic (لهجة لبنانية)",
+    "total_entries": 246,
+    "categories": [
+      "pain_descriptions",
+      "body_parts",
+      "common_symptoms",
+      "chronic_conditions",
+      "emergency_phrases",
+      "mental_health",
+      "childrens_symptoms",
+      "digestive",
+      "respiratory",
+      "cardiovascular"
+    ]
+  },
+  "entries": [
+    {
+      "dialect_term": "بيوجعني",
+      "dialect_term_latin": "biyouja3ni",
+      "msa_equivalent": "يؤلمني",
+      "english_medical_term": "it hurts me / I have pain",
+      "category": "pain_descriptions",
+      "body_system": "general",
+      "severity_hint": "mild_to_moderate"
+    },
+    {
+      "dialect_term": "وجع",
+      "dialect_term_latin": "waja3",
+      "msa_equivalent": "ألم",
+      "english_medical_term": "pain / ache",
+      "category": "pain_descriptions",
+      "body_system": "general",
+      "severity_hint": "mild_to_moderate"
+    },
+    {
+      "dialect_term": "مخلوع",
+      "dialect_term_latin": "makhlou3",
+      "msa_equivalent": "ألم حاد مفاجئ",
+      "english_medical_term": "sharp sudden pain / shooting pain",
+      "category": "pain_descriptions",
+      "body_system": "general",
+      "severity_hint": "moderate_to_severe"
+    },
+    {
+      "dialect_term": "طاعن",
+      "dialect_term_latin": "ta3in",
+      "msa_equivalent": "ألم طعني",
+      "english_medical_term": "stabbing pain",
+      "category": "pain_descriptions",
+      "body_system": "general",
+      "severity_hint": "moderate_to_severe"
+    },
+    {
+      "dialect_term": "حارق",
+      "dialect_term_latin": "hare3",
+      "msa_equivalent": "ألم حارق",
+      "english_medical_term": "burning pain",
+      "category": "pain_descriptions",
+      "body_system": "general",
+      "severity_hint": "moderate"
+    },
+    {
+      "dialect_term": "شاد",
+      "dialect_term_latin": "shadd",
+      "msa_equivalent": "تشنج عضلي",
+      "english_medical_term": "cramping pain / muscle spasm",
+      "category": "pain_descriptions",
+      "body_system": "musculoskeletal",
+      "severity_hint": "mild_to_moderate"
+    },
+    {
+      "dialect_term": "ضاربني",
+      "dialect_term_latin": "daribni",
+      "msa_equivalent": "ألم نابض",
+      "english_medical_term": "throbbing pain",
+      "category": "pain_descriptions",
+      "body_system": "general",
+      "severity_hint": "moderate"
+    },
+    {
+      "dialect_term": "بيدبدب",
+      "dialect_term_latin": "bidabdib",
+      "msa_equivalent": "نبض مؤلم",
+      "english_medical_term": "throbbing / pulsating sensation",
+      "category": "pain_descriptions",
+      "body_system": "cardiovascular",
+      "severity_hint": "mild_to_moderate"
+    },
+    {
+      "dialect_term": "كاوي",
+      "dialect_term_latin": "kawi",
+      "msa_equivalent": "ألم حارق شديد",
+      "english_medical_term": "searing / scorching pain",
+      "category": "pain_descriptions",
+      "body_system": "general",
+      "severity_hint": "severe"
+    },
+    {
+      "dialect_term": "وخز",
+      "dialect_term_latin": "wakhz",
+      "msa_equivalent": "وخز ابري",
+      "english_medical_term": "pins and needles / tingling",
+      "category": "pain_descriptions",
+      "body_system": "neurological",
+      "severity_hint": "mild"
+    },
+    {
+      "dialect_term": "خدران",
+      "dialect_term_latin": "khadran",
+      "msa_equivalent": "تخدر",
+      "english_medical_term": "numbness / paresthesia",
+      "category": "pain_descriptions",
+      "body_system": "neurological",
+      "severity_hint": "mild_to_moderate"
+    },
+    {
+      "dialect_term": "تعبان كتير",
+      "dialect_term_latin": "ta3ban ktir",
+      "msa_equivalent": "مريض جدا",
+      "english_medical_term": "very unwell / severe malaise",
+      "category": "pain_descriptions",
+      "body_system": "general",
+      "severity_hint": "severe"
+    },
+    {
+      "dialect_term": "قرصة",
+      "dialect_term_latin": "arsa",
+      "msa_equivalent": "ألم حاد قارص",
+      "english_medical_term": "sharp pinching pain",
+      "category": "pain_descriptions",
+      "body_system": "general",
+      "severity_hint": "moderate"
+    },
+    {
+      "dialect_term": "راسي",
+      "dialect_term_latin": "rasi",
+      "msa_equivalent": "رأسي",
+      "english_medical_term": "head",
+      "category": "body_parts",
+      "body_system": "neurological",
+      "severity_hint": null
+    },
+    {
+      "dialect_term": "قفا",
+      "dialect_term_latin": "afa",
+      "msa_equivalent": "مؤخرة الرأس",
+      "english_medical_term": "back of head / nape of neck",
+      "category": "body_parts",
+      "body_system": "neurological",
+      "severity_hint": null
+    },
+    {
+      "dialect_term": "رقبة",
+      "dialect_term_latin": "ra3ba",
+      "msa_equivalent": "عنق",
+      "english_medical_term": "neck / cervical region",
+      "category": "body_parts",
+      "body_system": "musculoskeletal",
+      "severity_hint": null
+    },
+    {
+      "dialect_term": "كتف",
+      "dialect_term_latin": "ktif",
+      "msa_equivalent": "كتف",
+      "english_medical_term": "shoulder",
+      "category": "body_parts",
+      "body_system": "musculoskeletal",
+      "severity_hint": null
+    },
+    {
+      "dialect_term": "ضهر",
+      "dialect_term_latin": "daher",
+      "msa_equivalent": "ظهر",
+      "english_medical_term": "back",
+      "category": "body_parts",
+      "body_system": "musculoskeletal",
+      "severity_hint": null
+    },
+    {
+      "dialect_term": "وسطي",
+      "dialect_term_latin": "wasati",
+      "msa_equivalent": "الخصر أسفل الظهر",
+      "english_medical_term": "lower back / lumbar region",
+      "category": "body_parts",
+      "body_system": "musculoskeletal",
+      "severity_hint": null
+    },
+    {
+      "dialect_term": "بطن",
+      "dialect_term_latin": "batn",
+      "msa_equivalent": "بطن",
+      "english_medical_term": "abdomen / belly",
+      "category": "body_parts",
+      "body_system": "digestive",
+      "severity_hint": null
+    },
+    {
+      "dialect_term": "كرش",
+      "dialect_term_latin": "kirsh",
+      "msa_equivalent": "بطن معدة",
+      "english_medical_term": "stomach / abdomen (colloquial)",
+      "category": "body_parts",
+      "body_system": "digestive",
+      "severity_hint": null
+    },
+    {
+      "dialect_term": "معدة",
+      "dialect_term_latin": "m3ida",
+      "msa_equivalent": "معدة",
+      "english_medical_term": "stomach / gastric region",
+      "category": "body_parts",
+      "body_system": "digestive",
+      "severity_hint": null
+    },
+    {
+      "dialect_term": "صدر",
+      "dialect_term_latin": "sadr",
+      "msa_equivalent": "صدر",
+      "english_medical_term": "chest",
+      "category": "body_parts",
+      "body_system": "cardiovascular",
+      "severity_hint": null
+    },
+    {
+      "dialect_term": "قلب",
+      "dialect_term_latin": "alb",
+      "msa_equivalent": "قلب",
+      "english_medical_term": "heart",
+      "category": "body_parts",
+      "body_system": "cardiovascular",
+      "severity_hint": null
+    },
+    {
+      "dialect_term": "رية",
+      "dialect_term_latin": "riye",
+      "msa_equivalent": "رئة",
+      "english_medical_term": "lung",
+      "category": "body_parts",
+      "body_system": "respiratory",
+      "severity_hint": null
+    },
+    {
+      "dialect_term": "كبدة",
+      "dialect_term_latin": "kibde",
+      "msa_equivalent": "كبد",
+      "english_medical_term": "liver",
+      "category": "body_parts",
+      "body_system": "digestive",
+      "severity_hint": null
+    },
+    {
+      "dialect_term": "طحال",
+      "dialect_term_latin": "thhal",
+      "msa_equivalent": "طحال",
+      "english_medical_term": "spleen",
+      "category": "body_parts",
+      "body_system": "digestive",
+      "severity_hint": null
+    },
+    {
+      "dialect_term": "كلوة",
+      "dialect_term_latin": "klowe",
+      "msa_equivalent": "كلية",
+      "english_medical_term": "kidney",
+      "category": "body_parts",
+      "body_system": "urological",
+      "severity_hint": null
+    },
+    {
+      "dialect_term": "مثانة",
+      "dialect_term_latin": "mathane",
+      "msa_equivalent": "مثانة",
+      "english_medical_term": "urinary bladder",
+      "category": "body_parts",
+      "body_system": "urological",
+      "severity_hint": null
+    },
+    {
+      "dialect_term": "ايد",
+      "dialect_term_latin": "eid",
+      "msa_equivalent": "يد ذراع",
+      "english_medical_term": "hand / arm",
+      "category": "body_parts",
+      "body_system": "musculoskeletal",
+      "severity_hint": null
+    },
+    {
+      "dialect_term": "رجل",
+      "dialect_term_latin": "rijl",
+      "msa_equivalent": "قدم ساق",
+      "english_medical_term": "foot / leg",
+      "category": "body_parts",
+      "body_system": "musculoskeletal",
+      "severity_hint": null
+    },
+    {
+      "dialect_term": "ركبة",
+      "dialect_term_latin": "rkabe",
+      "msa_equivalent": "ركبة",
+      "english_medical_term": "knee",
+      "category": "body_parts",
+      "body_system": "musculoskeletal",
+      "severity_hint": null
+    },
+    {
+      "dialect_term": "كعب",
+      "dialect_term_latin": "ka3b",
+      "msa_equivalent": "كاحل",
+      "english_medical_term": "ankle",
+      "category": "body_parts",
+      "body_system": "musculoskeletal",
+      "severity_hint": null
+    },
+    {
+      "dialect_term": "زند",
+      "dialect_term_latin": "zand",
+      "msa_equivalent": "معصم",
+      "english_medical_term": "wrist",
+      "category": "body_parts",
+      "body_system": "musculoskeletal",
+      "severity_hint": null
+    },
+    {
+      "dialect_term": "مرفق",
+      "dialect_term_latin": "mirfa3",
+      "msa_equivalent": "كوع مرفق",
+      "english_medical_term": "elbow",
+      "category": "body_parts",
+      "body_system": "musculoskeletal",
+      "severity_hint": null
+    },
+    {
+      "dialect_term": "حلق",
+      "dialect_term_latin": "ala3",
+      "msa_equivalent": "حلق بلعوم",
+      "english_medical_term": "throat / pharynx",
+      "category": "body_parts",
+      "body_system": "respiratory",
+      "severity_hint": null
+    },
+    {
+      "dialect_term": "اذن",
+      "dialect_term_latin": "wdan",
+      "msa_equivalent": "أذن",
+      "english_medical_term": "ear",
+      "category": "body_parts",
+      "body_system": "ENT",
+      "severity_hint": null
+    },
+    {
+      "dialect_term": "عين",
+      "dialect_term_latin": "3ein",
+      "msa_equivalent": "عين",
+      "english_medical_term": "eye",
+      "category": "body_parts",
+      "body_system": "ENT",
+      "severity_hint": null
+    },
+    {
+      "dialect_term": "انف",
+      "dialect_term_latin": "anf",
+      "msa_equivalent": "أنف",
+      "english_medical_term": "nose",
+      "category": "body_parts",
+      "body_system": "ENT",
+      "severity_hint": null
+    },
+    {
+      "dialect_term": "شرايين",
+      "dialect_term_latin": "shrayen",
+      "msa_equivalent": "شرايين",
+      "english_medical_term": "arteries / arterial system",
+      "category": "body_parts",
+      "body_system": "cardiovascular",
+      "severity_hint": null
+    },
+    {
+      "dialect_term": "حمى",
+      "dialect_term_latin": "amma",
+      "msa_equivalent": "حمى ارتفاع الحرارة",
+      "english_medical_term": "fever / pyrexia",
+      "category": "common_symptoms",
+      "body_system": "general",
+      "severity_hint": "moderate"
+    },
+    {
+      "dialect_term": "سخونة",
+      "dialect_term_latin": "skhouneh",
+      "msa_equivalent": "حرارة",
+      "english_medical_term": "fever / elevated body temperature",
+      "category": "common_symptoms",
+      "body_system": "general",
+      "severity_hint": "moderate"
+    },
+    {
+      "dialect_term": "دوخة",
+      "dialect_term_latin": "dukhe",
+      "msa_equivalent": "دوار دوخة",
+      "english_medical_term": "dizziness / vertigo",
+      "category": "common_symptoms",
+      "body_system": "neurological",
+      "severity_hint": "mild_to_moderate"
+    },
+    {
+      "dialect_term": "الدنيي بتدور",
+      "dialect_term_latin": "l-dene btdour",
+      "msa_equivalent": "شعور بالدوران",
+      "english_medical_term": "vertigo / spinning sensation",
+      "category": "common_symptoms",
+      "body_system": "neurological",
+      "severity_hint": "moderate"
+    },
+    {
+      "dialect_term": "غشاوة",
+      "dialect_term_latin": "ghshaweh",
+      "msa_equivalent": "اغماء ضعف",
+      "english_medical_term": "near-syncope / faintness",
+      "category": "common_symptoms",
+      "body_system": "cardiovascular",
+      "severity_hint": "moderate_to_severe"
+    },
+    {
+      "dialect_term": "طنين",
+      "dialect_term_latin": "tannin",
+      "msa_equivalent": "طنين الاذن",
+      "english_medical_term": "tinnitus / ringing in the ear",
+      "category": "common_symptoms",
+      "body_system": "ENT",
+      "severity_hint": "mild"
+    },
+    {
+      "dialect_term": "تقيؤ",
+      "dialect_term_latin": "ta3ayyu3",
+      "msa_equivalent": "قيء استفراغ",
+      "english_medical_term": "vomiting / emesis",
+      "category": "common_symptoms",
+      "body_system": "digestive",
+      "severity_hint": "moderate"
+    },
+    {
+      "dialect_term": "بدو يترجع",
+      "dialect_term_latin": "baddo ytraja3",
+      "msa_equivalent": "يريد القيء",
+      "english_medical_term": "nausea / feeling like vomiting",
+      "category": "common_symptoms",
+      "body_system": "digestive",
+      "severity_hint": "mild_to_moderate"
+    },
+    {
+      "dialect_term": "غثيان",
+      "dialect_term_latin": "ghathayan",
+      "msa_equivalent": "غثيان",
+      "english_medical_term": "nausea",
+      "category": "common_symptoms",
+      "body_system": "digestive",
+      "severity_hint": "mild_to_moderate"
+    },
+    {
+      "dialect_term": "ضعف",
+      "dialect_term_latin": "da3f",
+      "msa_equivalent": "وهن ارهاق",
+      "english_medical_term": "weakness / fatigue / asthenia",
+      "category": "common_symptoms",
+      "body_system": "general",
+      "severity_hint": "mild_to_moderate"
+    },
+    {
+      "dialect_term": "تعب",
+      "dialect_term_latin": "ta3ab",
+      "msa_equivalent": "ارهاق عام",
+      "english_medical_term": "fatigue / general malaise",
+      "category": "common_symptoms",
+      "body_system": "general",
+      "severity_hint": "mild_to_moderate"
+    },
+    {
+      "dialect_term": "رجفان",
+      "dialect_term_latin": "rijfan",
+      "msa_equivalent": "قشعريرة رعشة",
+      "english_medical_term": "chills / rigors / trembling",
+      "category": "common_symptoms",
+      "body_system": "general",
+      "severity_hint": "moderate"
+    },
+    {
+      "dialect_term": "عرق",
+      "dialect_term_latin": "3ara3",
+      "msa_equivalent": "تعرق",
+      "english_medical_term": "sweating / diaphoresis",
+      "category": "common_symptoms",
+      "body_system": "general",
+      "severity_hint": "mild"
+    },
+    {
+      "dialect_term": "عرق بارد",
+      "dialect_term_latin": "3ara3 bared",
+      "msa_equivalent": "تعرق بارد",
+      "english_medical_term": "cold sweats / diaphoresis",
+      "category": "common_symptoms",
+      "body_system": "cardiovascular",
+      "severity_hint": "severe"
+    },
+    {
+      "dialect_term": "خفقان",
+      "dialect_term_latin": "khafa3an",
+      "msa_equivalent": "خفقان القلب",
+      "english_medical_term": "palpitations",
+      "category": "common_symptoms",
+      "body_system": "cardiovascular",
+      "severity_hint": "moderate"
+    },
+    {
+      "dialect_term": "حرقة",
+      "dialect_term_latin": "hir3a",
+      "msa_equivalent": "حرقة المعدة",
+      "english_medical_term": "heartburn / acid reflux / GERD",
+      "category": "common_symptoms",
+      "body_system": "digestive",
+      "severity_hint": "mild_to_moderate"
+    },
+    {
+      "dialect_term": "نفخة",
+      "dialect_term_latin": "nafkhe",
+      "msa_equivalent": "انتفاخ غازات",
+      "english_medical_term": "bloating / flatulence",
+      "category": "common_symptoms",
+      "body_system": "digestive",
+      "severity_hint": "mild"
+    },
+    {
+      "dialect_term": "امساك",
+      "dialect_term_latin": "imsak",
+      "msa_equivalent": "امساك",
+      "english_medical_term": "constipation",
+      "category": "common_symptoms",
+      "body_system": "digestive",
+      "severity_hint": "mild_to_moderate"
+    },
+    {
+      "dialect_term": "اسهال",
+      "dialect_term_latin": "ishal",
+      "msa_equivalent": "اسهال",
+      "english_medical_term": "diarrhea",
+      "category": "common_symptoms",
+      "body_system": "digestive",
+      "severity_hint": "mild_to_moderate"
+    },
+    {
+      "dialect_term": "صراع",
+      "dialect_term_latin": "sra3",
+      "msa_equivalent": "مغص ألم تشنجي",
+      "english_medical_term": "colic / cramping abdominal pain",
+      "category": "common_symptoms",
+      "body_system": "digestive",
+      "severity_hint": "moderate"
+    },
+    {
+      "dialect_term": "كحة",
+      "dialect_term_latin": "kahe",
+      "msa_equivalent": "سعال",
+      "english_medical_term": "cough",
+      "category": "common_symptoms",
+      "body_system": "respiratory",
+      "severity_hint": "mild_to_moderate"
+    },
+    {
+      "dialect_term": "زكام",
+      "dialect_term_latin": "zkam",
+      "msa_equivalent": "نزلة برد رشح",
+      "english_medical_term": "common cold / rhinitis",
+      "category": "common_symptoms",
+      "body_system": "respiratory",
+      "severity_hint": "mild"
+    },
+    {
+      "dialect_term": "مخاط",
+      "dialect_term_latin": "mkhat",
+      "msa_equivalent": "افرازات انفية",
+      "english_medical_term": "nasal discharge / mucus",
+      "category": "common_symptoms",
+      "body_system": "respiratory",
+      "severity_hint": "mild"
+    },
+    {
+      "dialect_term": "ضيقة نفس",
+      "dialect_term_latin": "di3et nafas",
+      "msa_equivalent": "ضيق التنفس",
+      "english_medical_term": "shortness of breath / dyspnea",
+      "category": "common_symptoms",
+      "body_system": "respiratory",
+      "severity_hint": "moderate_to_severe"
+    },
+    {
+      "dialect_term": "ما عم يتنفس",
+      "dialect_term_latin": "ma 3am yitnaffas",
+      "msa_equivalent": "صعوبة في التنفس",
+      "english_medical_term": "difficulty breathing / respiratory distress",
+      "category": "common_symptoms",
+      "body_system": "respiratory",
+      "severity_hint": "severe"
+    },
+    {
+      "dialect_term": "شخير",
+      "dialect_term_latin": "shkhir",
+      "msa_equivalent": "شخير",
+      "english_medical_term": "snoring / sleep apnea symptom",
+      "category": "common_symptoms",
+      "body_system": "respiratory",
+      "severity_hint": "mild"
+    },
+    {
+      "dialect_term": "حكة",
+      "dialect_term_latin": "hakke",
+      "msa_equivalent": "حكة حكاك",
+      "english_medical_term": "itching / pruritus",
+      "category": "common_symptoms",
+      "body_system": "dermatological",
+      "severity_hint": "mild"
+    },
+    {
+      "dialect_term": "طفح",
+      "dialect_term_latin": "tafah",
+      "msa_equivalent": "طفح جلدي",
+      "english_medical_term": "skin rash / exanthem",
+      "category": "common_symptoms",
+      "body_system": "dermatological",
+      "severity_hint": "mild_to_moderate"
+    },
+    {
+      "dialect_term": "تورم",
+      "dialect_term_latin": "tawworm",
+      "msa_equivalent": "تورم انتفاخ",
+      "english_medical_term": "swelling / edema",
+      "category": "common_symptoms",
+      "body_system": "general",
+      "severity_hint": "mild_to_moderate"
+    },
+    {
+      "dialect_term": "وجع راس",
+      "dialect_term_latin": "waja3 ras",
+      "msa_equivalent": "صداع",
+      "english_medical_term": "headache / cephalgia",
+      "category": "common_symptoms",
+      "body_system": "neurological",
+      "severity_hint": "mild_to_moderate"
+    },
+    {
+      "dialect_term": "صداع شقيقة",
+      "dialect_term_latin": "sada3 sha3i3a",
+      "msa_equivalent": "صداع نصفي",
+      "english_medical_term": "migraine",
+      "category": "common_symptoms",
+      "body_system": "neurological",
+      "severity_hint": "moderate_to_severe"
+    },
+    {
+      "dialect_term": "عيناه مشوشة",
+      "dialect_term_latin": "3einau mshawshe",
+      "msa_equivalent": "تشويش الرؤية",
+      "english_medical_term": "blurred vision / diplopia",
+      "category": "common_symptoms",
+      "body_system": "neurological",
+      "severity_hint": "moderate_to_severe"
+    },
+    {
+      "dialect_term": "ما بيشوف",
+      "dialect_term_latin": "ma bishuf",
+      "msa_equivalent": "ضعف البصر",
+      "english_medical_term": "visual impairment / poor vision",
+      "category": "common_symptoms",
+      "body_system": "ENT",
+      "severity_hint": "moderate"
+    },
+    {
+      "dialect_term": "عيون حمر",
+      "dialect_term_latin": "3ioune humr",
+      "msa_equivalent": "احتقان الملتحمة",
+      "english_medical_term": "red eyes / conjunctivitis",
+      "category": "common_symptoms",
+      "body_system": "ENT",
+      "severity_hint": "mild"
+    },
+    {
+      "dialect_term": "ما سامع",
+      "dialect_term_latin": "ma sami3",
+      "msa_equivalent": "ضعف السمع",
+      "english_medical_term": "hearing loss / hypoacusis",
+      "category": "common_symptoms",
+      "body_system": "ENT",
+      "severity_hint": "moderate"
+    },
+    {
+      "dialect_term": "وجع اذن",
+      "dialect_term_latin": "waja3 wdan",
+      "msa_equivalent": "ألم الاذن",
+      "english_medical_term": "earache / otalgia",
+      "category": "common_symptoms",
+      "body_system": "ENT",
+      "severity_hint": "mild_to_moderate"
+    },
+    {
+      "dialect_term": "وجع سن",
+      "dialect_term_latin": "waja3 sinn",
+      "msa_equivalent": "ألم الاسنان",
+      "english_medical_term": "toothache / odontalgia",
+      "category": "common_symptoms",
+      "body_system": "dental",
+      "severity_hint": "mild_to_moderate"
+    },
+    {
+      "dialect_term": "ريحة الفم",
+      "dialect_term_latin": "rihit l-famm",
+      "msa_equivalent": "رائحة الفم",
+      "english_medical_term": "halitosis / bad breath",
+      "category": "common_symptoms",
+      "body_system": "dental",
+      "severity_hint": "mild"
+    },
+    {
+      "dialect_term": "حرقة بول",
+      "dialect_term_latin": "hir3et boul",
+      "msa_equivalent": "حرقة عند التبول",
+      "english_medical_term": "dysuria / burning urination",
+      "category": "common_symptoms",
+      "body_system": "urological",
+      "severity_hint": "mild_to_moderate"
+    },
+    {
+      "dialect_term": "بيبول كتير",
+      "dialect_term_latin": "byboul ktir",
+      "msa_equivalent": "كثرة التبول",
+      "english_medical_term": "polyuria / frequent urination",
+      "category": "common_symptoms",
+      "body_system": "urological",
+      "severity_hint": "mild_to_moderate"
+    },
+    {
+      "dialect_term": "دم في البول",
+      "dialect_term_latin": "damm bil-boul",
+      "msa_equivalent": "بيلة دموية",
+      "english_medical_term": "hematuria / blood in urine",
+      "category": "common_symptoms",
+      "body_system": "urological",
+      "severity_hint": "severe"
+    },
+    {
+      "dialect_term": "ما بيبول",
+      "dialect_term_latin": "ma byboul",
+      "msa_equivalent": "احتباس البول",
+      "english_medical_term": "urinary retention",
+      "category": "common_symptoms",
+      "body_system": "urological",
+      "severity_hint": "severe"
+    },
+    {
+      "dialect_term": "تقطير",
+      "dialect_term_latin": "ta3tir",
+      "msa_equivalent": "سلس البول",
+      "english_medical_term": "urinary incontinence / dribbling",
+      "category": "common_symptoms",
+      "body_system": "urological",
+      "severity_hint": "mild_to_moderate"
+    },
+    {
+      "dialect_term": "وجع كلوة",
+      "dialect_term_latin": "waja3 klowe",
+      "msa_equivalent": "ألم الكلية",
+      "english_medical_term": "renal pain / flank pain",
+      "category": "common_symptoms",
+      "body_system": "urological",
+      "severity_hint": "moderate_to_severe"
+    },
+    {
+      "dialect_term": "عطش كتير",
+      "dialect_term_latin": "3atash ktir",
+      "msa_equivalent": "عطش شديد",
+      "english_medical_term": "polydipsia / excessive thirst",
+      "category": "common_symptoms",
+      "body_system": "endocrine",
+      "severity_hint": "moderate"
+    },
+    {
+      "dialect_term": "جوع كتير",
+      "dialect_term_latin": "jou3 ktir",
+      "msa_equivalent": "شره مفرط",
+      "english_medical_term": "polyphagia / excessive hunger",
+      "category": "common_symptoms",
+      "body_system": "endocrine",
+      "severity_hint": "mild_to_moderate"
+    },
+    {
+      "dialect_term": "ما عندو شهية",
+      "dialect_term_latin": "ma 3ando shahiyye",
+      "msa_equivalent": "فقدان الشهية",
+      "english_medical_term": "anorexia / loss of appetite",
+      "category": "common_symptoms",
+      "body_system": "digestive",
+      "severity_hint": "mild_to_moderate"
+    },
+    {
+      "dialect_term": "نحافة",
+      "dialect_term_latin": "nhafe",
+      "msa_equivalent": "نحافة فقدان الوزن",
+      "english_medical_term": "underweight / weight loss",
+      "category": "common_symptoms",
+      "body_system": "general",
+      "severity_hint": "mild_to_moderate"
+    },
+    {
+      "dialect_term": "شحوب",
+      "dialect_term_latin": "shhoub",
+      "msa_equivalent": "شحوب",
+      "english_medical_term": "pallor / anemia sign",
+      "category": "common_symptoms",
+      "body_system": "hematological",
+      "severity_hint": "moderate"
+    },
+    {
+      "dialect_term": "تعرق الليل",
+      "dialect_term_latin": "ta3arra3 l-leil",
+      "msa_equivalent": "التعرق الليلي",
+      "english_medical_term": "night sweats",
+      "category": "common_symptoms",
+      "body_system": "general",
+      "severity_hint": "moderate"
+    },
+    {
+      "dialect_term": "جلد جاف",
+      "dialect_term_latin": "jeld jaf",
+      "msa_equivalent": "جفاف الجلد",
+      "english_medical_term": "dry skin / xerosis",
+      "category": "common_symptoms",
+      "body_system": "dermatological",
+      "severity_hint": "mild"
+    },
+    {
+      "dialect_term": "شعر بيوقع",
+      "dialect_term_latin": "sha3ar biyou3",
+      "msa_equivalent": "تساقط الشعر",
+      "english_medical_term": "hair loss / alopecia",
+      "category": "common_symptoms",
+      "body_system": "dermatological",
+      "severity_hint": "mild"
+    },
+    {
+      "dialect_term": "بيحكلو جسمو",
+      "dialect_term_latin": "byihklo jismo",
+      "msa_equivalent": "حكة معممة",
+      "english_medical_term": "generalized pruritus",
+      "category": "common_symptoms",
+      "body_system": "dermatological",
+      "severity_hint": "mild_to_moderate"
+    },
+    {
+      "dialect_term": "كدمة",
+      "dialect_term_latin": "kadme",
+      "msa_equivalent": "كدمة رضة",
+      "english_medical_term": "bruise / contusion / ecchymosis",
+      "category": "common_symptoms",
+      "body_system": "dermatological",
+      "severity_hint": "mild"
+    },
+    {
+      "dialect_term": "جرح",
+      "dialect_term_latin": "jreh",
+      "msa_equivalent": "جرح",
+      "english_medical_term": "wound / laceration",
+      "category": "common_symptoms",
+      "body_system": "dermatological",
+      "severity_hint": "mild_to_moderate"
+    },
+    {
+      "dialect_term": "تقيح",
+      "dialect_term_latin": "ta3ayyo3",
+      "msa_equivalent": "قيح تلوث",
+      "english_medical_term": "pus / suppuration / abscess",
+      "category": "common_symptoms",
+      "body_system": "general",
+      "severity_hint": "moderate"
+    },
+    {
+      "dialect_term": "فطريات",
+      "dialect_term_latin": "fotriyet",
+      "msa_equivalent": "عدوى فطرية",
+      "english_medical_term": "fungal infection / mycosis",
+      "category": "common_symptoms",
+      "body_system": "dermatological",
+      "severity_hint": "mild"
+    },
+    {
+      "dialect_term": "ورم",
+      "dialect_term_latin": "waram",
+      "msa_equivalent": "ورم كتلة",
+      "english_medical_term": "tumor / mass / lump",
+      "category": "common_symptoms",
+      "body_system": "oncological",
+      "severity_hint": "moderate_to_severe"
+    },
+    {
+      "dialect_term": "جفاف",
+      "dialect_term_latin": "jfaf",
+      "msa_equivalent": "جفاف نقص السوائل",
+      "english_medical_term": "dehydration",
+      "category": "common_symptoms",
+      "body_system": "general",
+      "severity_hint": "moderate_to_severe"
+    },
+    {
+      "dialect_term": "لسانو جاف",
+      "dialect_term_latin": "lisano jef",
+      "msa_equivalent": "جفاف الفم",
+      "english_medical_term": "dry mouth / xerostomia",
+      "category": "common_symptoms",
+      "body_system": "general",
+      "severity_hint": "moderate"
+    },
+    {
+      "dialect_term": "ما في طاقة",
+      "dialect_term_latin": "ma fi ta3a",
+      "msa_equivalent": "ارهاق مزمن",
+      "english_medical_term": "low energy / chronic fatigue",
+      "category": "common_symptoms",
+      "body_system": "general",
+      "severity_hint": "mild_to_moderate"
+    },
+    {
+      "dialect_term": "بيصحى متعبان",
+      "dialect_term_latin": "byesha mta3ban",
+      "msa_equivalent": "يستيقظ تعبا",
+      "english_medical_term": "non-restorative sleep / morning fatigue",
+      "category": "common_symptoms",
+      "body_system": "general",
+      "severity_hint": "mild_to_moderate"
+    },
+    {
+      "dialect_term": "بيتشنج",
+      "dialect_term_latin": "bitshannaj",
+      "msa_equivalent": "تشنج عضلي",
+      "english_medical_term": "muscle cramp / spasm",
+      "category": "common_symptoms",
+      "body_system": "musculoskeletal",
+      "severity_hint": "mild_to_moderate"
+    },
+    {
+      "dialect_term": "ما قادر يمشي",
+      "dialect_term_latin": "ma ader yimshi",
+      "msa_equivalent": "عجز عن المشي",
+      "english_medical_term": "inability to walk / mobility impairment",
+      "category": "common_symptoms",
+      "body_system": "musculoskeletal",
+      "severity_hint": "severe"
+    },
+    {
+      "dialect_term": "بيزداد",
+      "dialect_term_latin": "byzad",
+      "msa_equivalent": "يتفاقم",
+      "english_medical_term": "worsening / progressing symptom",
+      "category": "common_symptoms",
+      "body_system": "general",
+      "severity_hint": "moderate"
+    },
+    {
+      "dialect_term": "بيطلع وبيروح",
+      "dialect_term_latin": "byitla3 w byrouh",
+      "msa_equivalent": "متقطع",
+      "english_medical_term": "intermittent symptom / comes and goes",
+      "category": "common_symptoms",
+      "body_system": "general",
+      "severity_hint": "mild_to_moderate"
+    },
+    {
+      "dialect_term": "دايم",
+      "dialect_term_latin": "dayem",
+      "msa_equivalent": "مستمر دائم",
+      "english_medical_term": "constant / persistent symptom",
+      "category": "common_symptoms",
+      "body_system": "general",
+      "severity_hint": "moderate"
+    },
+    {
+      "dialect_term": "من هلق صار",
+      "dialect_term_latin": "min halla3 sar",
+      "msa_equivalent": "مفاجئ حديث",
+      "english_medical_term": "acute onset / sudden onset",
+      "category": "common_symptoms",
+      "body_system": "general",
+      "severity_hint": "moderate_to_severe"
+    },
+    {
+      "dialect_term": "ضغط الدم",
+      "dialect_term_latin": "daghat l-damm",
+      "msa_equivalent": "اضطراب الضغط",
+      "english_medical_term": "blood pressure disorder",
+      "category": "chronic_conditions",
+      "body_system": "cardiovascular",
+      "severity_hint": "moderate_to_severe"
+    },
+    {
+      "dialect_term": "ضغط عالي",
+      "dialect_term_latin": "daght 3ali",
+      "msa_equivalent": "ارتفاع ضغط الدم",
+      "english_medical_term": "hypertension / high blood pressure",
+      "category": "chronic_conditions",
+      "body_system": "cardiovascular",
+      "severity_hint": "moderate_to_severe"
+    },
+    {
+      "dialect_term": "ضغط واطي",
+      "dialect_term_latin": "daght wati",
+      "msa_equivalent": "انخفاض ضغط الدم",
+      "english_medical_term": "hypotension / low blood pressure",
+      "category": "chronic_conditions",
+      "body_system": "cardiovascular",
+      "severity_hint": "moderate"
+    },
+    {
+      "dialect_term": "سكري",
+      "dialect_term_latin": "sukari",
+      "msa_equivalent": "داء السكري",
+      "english_medical_term": "diabetes mellitus",
+      "category": "chronic_conditions",
+      "body_system": "endocrine",
+      "severity_hint": "moderate_to_severe"
+    },
+    {
+      "dialect_term": "السكر",
+      "dialect_term_latin": "l-sukkar",
+      "msa_equivalent": "داء السكري",
+      "english_medical_term": "diabetes / blood glucose level",
+      "category": "chronic_conditions",
+      "body_system": "endocrine",
+      "severity_hint": "moderate_to_severe"
+    },
+    {
+      "dialect_term": "كوليسترول",
+      "dialect_term_latin": "kolesterol",
+      "msa_equivalent": "فرط الكوليسترول",
+      "english_medical_term": "hypercholesterolemia / high cholesterol",
+      "category": "chronic_conditions",
+      "body_system": "cardiovascular",
+      "severity_hint": "moderate"
+    },
+    {
+      "dialect_term": "قصور القلب",
+      "dialect_term_latin": "ousour l-alb",
+      "msa_equivalent": "قصور القلب",
+      "english_medical_term": "heart failure",
+      "category": "chronic_conditions",
+      "body_system": "cardiovascular",
+      "severity_hint": "severe"
+    },
+    {
+      "dialect_term": "ربو",
+      "dialect_term_latin": "rabw",
+      "msa_equivalent": "ربو تشنج قصبي",
+      "english_medical_term": "asthma / bronchospasm",
+      "category": "chronic_conditions",
+      "body_system": "respiratory",
+      "severity_hint": "moderate_to_severe"
+    },
+    {
+      "dialect_term": "صفيرة",
+      "dialect_term_latin": "sfayre",
+      "msa_equivalent": "صفير تنفسي",
+      "english_medical_term": "wheezing",
+      "category": "chronic_conditions",
+      "body_system": "respiratory",
+      "severity_hint": "moderate"
+    },
+    {
+      "dialect_term": "رومتيزم",
+      "dialect_term_latin": "romatizm",
+      "msa_equivalent": "روماتيزم التهاب مفاصل",
+      "english_medical_term": "rheumatism / arthritis",
+      "category": "chronic_conditions",
+      "body_system": "musculoskeletal",
+      "severity_hint": "moderate"
+    },
+    {
+      "dialect_term": "التهاب المفاصل",
+      "dialect_term_latin": "iltihab l-mafasil",
+      "msa_equivalent": "التهاب المفاصل",
+      "english_medical_term": "arthritis / joint inflammation",
+      "category": "chronic_conditions",
+      "body_system": "musculoskeletal",
+      "severity_hint": "moderate"
+    },
+    {
+      "dialect_term": "غدة درقية",
+      "dialect_term_latin": "ghudde daraqiyye",
+      "msa_equivalent": "اضطراب الغدة الدرقية",
+      "english_medical_term": "thyroid disorder",
+      "category": "chronic_conditions",
+      "body_system": "endocrine",
+      "severity_hint": "moderate"
+    },
+    {
+      "dialect_term": "حصاة كلوة",
+      "dialect_term_latin": "hasset klowe",
+      "msa_equivalent": "حصوات الكلى",
+      "english_medical_term": "kidney stones / nephrolithiasis",
+      "category": "chronic_conditions",
+      "body_system": "urological",
+      "severity_hint": "moderate_to_severe"
+    },
+    {
+      "dialect_term": "حصاة مرارة",
+      "dialect_term_latin": "hasset mrara",
+      "msa_equivalent": "حصوات المرارة",
+      "english_medical_term": "gallstones / cholelithiasis",
+      "category": "chronic_conditions",
+      "body_system": "digestive",
+      "severity_hint": "moderate_to_severe"
+    },
+    {
+      "dialect_term": "تحجر الشرايين",
+      "dialect_term_latin": "tahajjor l-shrayen",
+      "msa_equivalent": "تصلب الشرايين",
+      "english_medical_term": "arteriosclerosis / atherosclerosis",
+      "category": "chronic_conditions",
+      "body_system": "cardiovascular",
+      "severity_hint": "severe"
+    },
+    {
+      "dialect_term": "عظامو بيوجعوه",
+      "dialect_term_latin": "3zamouh biuja3ouh",
+      "msa_equivalent": "آلام العظام",
+      "english_medical_term": "bone pain / ostealgia",
+      "category": "chronic_conditions",
+      "body_system": "musculoskeletal",
+      "severity_hint": "moderate"
+    },
+    {
+      "dialect_term": "مفاصلو منتفخة",
+      "dialect_term_latin": "mfaslou montafkhe",
+      "msa_equivalent": "انتفاخ المفاصل",
+      "english_medical_term": "joint swelling / synovitis",
+      "category": "chronic_conditions",
+      "body_system": "musculoskeletal",
+      "severity_hint": "moderate"
+    },
+    {
+      "dialect_term": "تيبس الصبح",
+      "dialect_term_latin": "teyabbus l-subh",
+      "msa_equivalent": "تيبس الصباح",
+      "english_medical_term": "morning stiffness / rheumatoid symptom",
+      "category": "chronic_conditions",
+      "body_system": "musculoskeletal",
+      "severity_hint": "mild_to_moderate"
+    },
+    {
+      "dialect_term": "عرق النسا",
+      "dialect_term_latin": "3ar3 l-nasa",
+      "msa_equivalent": "ألم العصب الوركي",
+      "english_medical_term": "sciatica / sciatic nerve pain",
+      "category": "chronic_conditions",
+      "body_system": "neurological",
+      "severity_hint": "moderate_to_severe"
+    },
+    {
+      "dialect_term": "دم ناقص",
+      "dialect_term_latin": "damm na3es",
+      "msa_equivalent": "فقر الدم",
+      "english_medical_term": "anemia",
+      "category": "chronic_conditions",
+      "body_system": "hematological",
+      "severity_hint": "moderate"
+    },
+    {
+      "dialect_term": "فشل كلوي",
+      "dialect_term_latin": "fashal klawi",
+      "msa_equivalent": "فشل كلوي",
+      "english_medical_term": "renal failure / kidney failure",
+      "category": "chronic_conditions",
+      "body_system": "urological",
+      "severity_hint": "critical"
+    },
+    {
+      "dialect_term": "فشل كبدي",
+      "dialect_term_latin": "fashal kibadi",
+      "msa_equivalent": "فشل كبدي",
+      "english_medical_term": "liver failure / hepatic failure",
+      "category": "chronic_conditions",
+      "body_system": "digestive",
+      "severity_hint": "critical"
+    },
+    {
+      "dialect_term": "عندو السرطان",
+      "dialect_term_latin": "3ando l-saratan",
+      "msa_equivalent": "مرض السرطان",
+      "english_medical_term": "cancer / malignancy",
+      "category": "chronic_conditions",
+      "body_system": "oncological",
+      "severity_hint": "severe"
+    },
+    {
+      "dialect_term": "سمنة",
+      "dialect_term_latin": "simne",
+      "msa_equivalent": "سمنة",
+      "english_medical_term": "obesity",
+      "category": "chronic_conditions",
+      "body_system": "endocrine",
+      "severity_hint": "moderate"
+    },
+    {
+      "dialect_term": "التهاب وتر",
+      "dialect_term_latin": "iltihab watar",
+      "msa_equivalent": "التهاب الاوتار",
+      "english_medical_term": "tendinitis",
+      "category": "chronic_conditions",
+      "body_system": "musculoskeletal",
+      "severity_hint": "mild_to_moderate"
+    },
+    {
+      "dialect_term": "بهاق",
+      "dialect_term_latin": "bahae",
+      "msa_equivalent": "البهاق",
+      "english_medical_term": "vitiligo",
+      "category": "chronic_conditions",
+      "body_system": "dermatological",
+      "severity_hint": "mild"
+    },
+    {
+      "dialect_term": "صدفية",
+      "dialect_term_latin": "sodafiyye",
+      "msa_equivalent": "الصداف",
+      "english_medical_term": "psoriasis",
+      "category": "chronic_conditions",
+      "body_system": "dermatological",
+      "severity_hint": "moderate"
+    },
+    {
+      "dialect_term": "اكزيما",
+      "dialect_term_latin": "akzima",
+      "msa_equivalent": "اكزيما التهاب جلدي",
+      "english_medical_term": "eczema / atopic dermatitis",
+      "category": "chronic_conditions",
+      "body_system": "dermatological",
+      "severity_hint": "mild_to_moderate"
+    },
+    {
+      "dialect_term": "باقي ينضرب",
+      "dialect_term_latin": "ba3i yindrab",
+      "msa_equivalent": "نوبة قلبية وشيكة",
+      "english_medical_term": "impending cardiac event / acute coronary syndrome",
+      "category": "emergency_phrases",
+      "body_system": "cardiovascular",
+      "severity_hint": "critical"
+    },
+    {
+      "dialect_term": "نوبة قلبية",
+      "dialect_term_latin": "nawbe albiyye",
+      "msa_equivalent": "نوبة قلبية احتشاء",
+      "english_medical_term": "heart attack / myocardial infarction",
+      "category": "emergency_phrases",
+      "body_system": "cardiovascular",
+      "severity_hint": "critical"
+    },
+    {
+      "dialect_term": "جلطة",
+      "dialect_term_latin": "jalta",
+      "msa_equivalent": "جلطة دموية سكتة دماغية",
+      "english_medical_term": "stroke / thrombosis / blood clot",
+      "category": "emergency_phrases",
+      "body_system": "neurological",
+      "severity_hint": "critical"
+    },
+    {
+      "dialect_term": "وقع",
+      "dialect_term_latin": "wa3a3",
+      "msa_equivalent": "سقط اغمي عليه",
+      "english_medical_term": "collapsed / fainted / syncope",
+      "category": "emergency_phrases",
+      "body_system": "general",
+      "severity_hint": "critical"
+    },
+    {
+      "dialect_term": "ما بيتحرك",
+      "dialect_term_latin": "ma bitharak",
+      "msa_equivalent": "لا يتحرك شلل",
+      "english_medical_term": "unable to move / paralysis",
+      "category": "emergency_phrases",
+      "body_system": "neurological",
+      "severity_hint": "critical"
+    },
+    {
+      "dialect_term": "مو واعي",
+      "dialect_term_latin": "mou wa3i",
+      "msa_equivalent": "فاقد الوعي",
+      "english_medical_term": "unconscious / loss of consciousness",
+      "category": "emergency_phrases",
+      "body_system": "neurological",
+      "severity_hint": "critical"
+    },
+    {
+      "dialect_term": "نزيف",
+      "dialect_term_latin": "nazif",
+      "msa_equivalent": "نزيف",
+      "english_medical_term": "hemorrhage / bleeding",
+      "category": "emergency_phrases",
+      "body_system": "general",
+      "severity_hint": "critical"
+    },
+    {
+      "dialect_term": "ما بيقدر يحكي",
+      "dialect_term_latin": "ma bi3dar yhki",
+      "msa_equivalent": "عجز عن الكلام",
+      "english_medical_term": "unable to speak / aphasia",
+      "category": "emergency_phrases",
+      "body_system": "neurological",
+      "severity_hint": "critical"
+    },
+    {
+      "dialect_term": "وجهو مائل",
+      "dialect_term_latin": "wijjo mayyil",
+      "msa_equivalent": "تدلي الوجه",
+      "english_medical_term": "facial droop / facial palsy",
+      "category": "emergency_phrases",
+      "body_system": "neurological",
+      "severity_hint": "critical"
+    },
+    {
+      "dialect_term": "ما شايف",
+      "dialect_term_latin": "ma shayif",
+      "msa_equivalent": "فقدان البصر",
+      "english_medical_term": "sudden vision loss / blindness",
+      "category": "emergency_phrases",
+      "body_system": "neurological",
+      "severity_hint": "critical"
+    },
+    {
+      "dialect_term": "ما بيتنفس",
+      "dialect_term_latin": "ma bitnaffas",
+      "msa_equivalent": "توقف التنفس",
+      "english_medical_term": "respiratory arrest / not breathing",
+      "category": "emergency_phrases",
+      "body_system": "respiratory",
+      "severity_hint": "critical"
+    },
+    {
+      "dialect_term": "قلبو وقف",
+      "dialect_term_latin": "3albo we3if",
+      "msa_equivalent": "توقف القلب",
+      "english_medical_term": "cardiac arrest",
+      "category": "emergency_phrases",
+      "body_system": "cardiovascular",
+      "severity_hint": "critical"
+    },
+    {
+      "dialect_term": "حساسية",
+      "dialect_term_latin": "hassasiyye",
+      "msa_equivalent": "تحسس حساسية مفرطة",
+      "english_medical_term": "allergic reaction / anaphylaxis",
+      "category": "emergency_phrases",
+      "body_system": "immunological",
+      "severity_hint": "moderate_to_critical"
+    },
+    {
+      "dialect_term": "ابتلع غلط",
+      "dialect_term_latin": "btala3 ghalat",
+      "msa_equivalent": "ابتلع جسما غريبا",
+      "english_medical_term": "foreign body ingestion / choking",
+      "category": "emergency_phrases",
+      "body_system": "respiratory",
+      "severity_hint": "critical"
+    },
+    {
+      "dialect_term": "ضربة شمس",
+      "dialect_term_latin": "darbet shams",
+      "msa_equivalent": "ضربة الشمس",
+      "english_medical_term": "heat stroke / sunstroke",
+      "category": "emergency_phrases",
+      "body_system": "general",
+      "severity_hint": "critical"
+    },
+    {
+      "dialect_term": "شلل",
+      "dialect_term_latin": "shallal",
+      "msa_equivalent": "شلل ضعف حركي",
+      "english_medical_term": "paralysis / motor weakness",
+      "category": "emergency_phrases",
+      "body_system": "neurological",
+      "severity_hint": "critical"
+    },
+    {
+      "dialect_term": "ضربة",
+      "dialect_term_latin": "darbe",
+      "msa_equivalent": "سكتة دماغية",
+      "english_medical_term": "stroke / cerebrovascular accident",
+      "category": "emergency_phrases",
+      "body_system": "neurological",
+      "severity_hint": "critical"
+    },
+    {
+      "dialect_term": "نوبة صرع",
+      "dialect_term_latin": "nawbet sar3",
+      "msa_equivalent": "نوبة صرعية",
+      "english_medical_term": "epileptic seizure",
+      "category": "emergency_phrases",
+      "body_system": "neurological",
+      "severity_hint": "severe"
+    },
+    {
+      "dialect_term": "لسانو ثقيل",
+      "dialect_term_latin": "lisano ta3il",
+      "msa_equivalent": "تعذر الكلام",
+      "english_medical_term": "dysarthria / slurred speech",
+      "category": "emergency_phrases",
+      "body_system": "neurological",
+      "severity_hint": "severe"
+    },
+    {
+      "dialect_term": "رقبتو ناشفة",
+      "dialect_term_latin": "ra3bto nashe",
+      "msa_equivalent": "تصلب الرقبة",
+      "english_medical_term": "neck stiffness / meningismus",
+      "category": "emergency_phrases",
+      "body_system": "neurological",
+      "severity_hint": "critical"
+    },
+    {
+      "dialect_term": "وجع راس مع حرارة",
+      "dialect_term_latin": "waja3 ras ma3 harara",
+      "msa_equivalent": "صداع مع حمى",
+      "english_medical_term": "headache with fever / possible meningitis sign",
+      "category": "emergency_phrases",
+      "body_system": "neurological",
+      "severity_hint": "severe"
+    },
+    {
+      "dialect_term": "وجع في الصدر ماشي عالايد",
+      "dialect_term_latin": "waja3 bil-sadr mashi 3a-l-eid",
+      "msa_equivalent": "ألم صدر منتشر للذراع",
+      "english_medical_term": "chest pain radiating to arm / cardiac referred pain",
+      "category": "emergency_phrases",
+      "body_system": "cardiovascular",
+      "severity_hint": "critical"
+    },
+    {
+      "dialect_term": "اصبعو ازرق",
+      "dialect_term_latin": "isb3o azra3",
+      "msa_equivalent": "زرقة",
+      "english_medical_term": "cyanosis / blue discoloration",
+      "category": "emergency_phrases",
+      "body_system": "cardiovascular",
+      "severity_hint": "critical"
+    },
+    {
+      "dialect_term": "انتفاخ بالوجه",
+      "dialect_term_latin": "intifakh bil-wiji",
+      "msa_equivalent": "وذمة الوجه",
+      "english_medical_term": "facial edema / angioedema",
+      "category": "emergency_phrases",
+      "body_system": "immunological",
+      "severity_hint": "severe"
+    },
+    {
+      "dialect_term": "حرق",
+      "dialect_term_latin": "har3",
+      "msa_equivalent": "حرق",
+      "english_medical_term": "burn",
+      "category": "emergency_phrases",
+      "body_system": "dermatological",
+      "severity_hint": "moderate_to_severe"
+    },
+    {
+      "dialect_term": "وقعت عالارض",
+      "dialect_term_latin": "wa3a3t 3a-l-ard",
+      "msa_equivalent": "سقطت على الارض",
+      "english_medical_term": "fall / trauma",
+      "category": "emergency_phrases",
+      "body_system": "musculoskeletal",
+      "severity_hint": "moderate_to_severe"
+    },
+    {
+      "dialect_term": "كسرة",
+      "dialect_term_latin": "kasre",
+      "msa_equivalent": "كسر عظمي",
+      "english_medical_term": "fracture / broken bone",
+      "category": "emergency_phrases",
+      "body_system": "musculoskeletal",
+      "severity_hint": "severe"
+    },
+    {
+      "dialect_term": "خلعة",
+      "dialect_term_latin": "khali3a",
+      "msa_equivalent": "خلع مفصل",
+      "english_medical_term": "dislocation",
+      "category": "emergency_phrases",
+      "body_system": "musculoskeletal",
+      "severity_hint": "severe"
+    },
+    {
+      "dialect_term": "تجرثم",
+      "dialect_term_latin": "tajartham",
+      "msa_equivalent": "تعفن تجرثم الدم",
+      "english_medical_term": "sepsis / blood infection",
+      "category": "emergency_phrases",
+      "body_system": "general",
+      "severity_hint": "critical"
+    },
+    {
+      "dialect_term": "ما شارب ما آكل",
+      "dialect_term_latin": "ma sharib ma akel",
+      "msa_equivalent": "رفض الاكل والشرب",
+      "english_medical_term": "refusal to eat or drink / severe illness sign",
+      "category": "emergency_phrases",
+      "body_system": "general",
+      "severity_hint": "severe"
+    },
+    {
+      "dialect_term": "شبه ميت",
+      "dialect_term_latin": "shebeh mayyit",
+      "msa_equivalent": "حالة حرجة",
+      "english_medical_term": "critical condition / near-death",
+      "category": "emergency_phrases",
+      "body_system": "general",
+      "severity_hint": "critical"
+    },
+    {
+      "dialect_term": "اصبع تلجت",
+      "dialect_term_latin": "isb3 talajat",
+      "msa_equivalent": "اصبع ازرق بارد",
+      "english_medical_term": "finger ischemia / digital cyanosis",
+      "category": "emergency_phrases",
+      "body_system": "cardiovascular",
+      "severity_hint": "critical"
+    },
+    {
+      "dialect_term": "اكتئاب",
+      "dialect_term_latin": "ikti3ab",
+      "msa_equivalent": "اكتئاب",
+      "english_medical_term": "depression / major depressive disorder",
+      "category": "mental_health",
+      "body_system": "psychiatric",
+      "severity_hint": "moderate_to_severe"
+    },
+    {
+      "dialect_term": "مزاجو تغير",
+      "dialect_term_latin": "mazajo tghayyar",
+      "msa_equivalent": "تغير المزاج",
+      "english_medical_term": "mood changes / mood disorder",
+      "category": "mental_health",
+      "body_system": "psychiatric",
+      "severity_hint": "mild_to_moderate"
+    },
+    {
+      "dialect_term": "قلق",
+      "dialect_term_latin": "ala3",
+      "msa_equivalent": "قلق اضطراب قلق",
+      "english_medical_term": "anxiety / anxiety disorder",
+      "category": "mental_health",
+      "body_system": "psychiatric",
+      "severity_hint": "mild_to_moderate"
+    },
+    {
+      "dialect_term": "توتر",
+      "dialect_term_latin": "tawattor",
+      "msa_equivalent": "توتر ضغط نفسي",
+      "english_medical_term": "stress / tension",
+      "category": "mental_health",
+      "body_system": "psychiatric",
+      "severity_hint": "mild_to_moderate"
+    },
+    {
+      "dialect_term": "ما بينام",
+      "dialect_term_latin": "ma binam",
+      "msa_equivalent": "ارق اضطراب النوم",
+      "english_medical_term": "insomnia / sleep disorder",
+      "category": "mental_health",
+      "body_system": "psychiatric",
+      "severity_hint": "mild_to_moderate"
+    },
+    {
+      "dialect_term": "بكي كتير",
+      "dialect_term_latin": "bki ktir",
+      "msa_equivalent": "بكاء متكرر",
+      "english_medical_term": "frequent crying / depressive symptom",
+      "category": "mental_health",
+      "body_system": "psychiatric",
+      "severity_hint": "mild_to_moderate"
+    },
+    {
+      "dialect_term": "ما بدو ياكل",
+      "dialect_term_latin": "ma baddo yekol",
+      "msa_equivalent": "فقدان الشهية",
+      "english_medical_term": "loss of appetite (psychiatric context)",
+      "category": "mental_health",
+      "body_system": "psychiatric",
+      "severity_hint": "mild_to_moderate"
+    },
+    {
+      "dialect_term": "افكار سوداء",
+      "dialect_term_latin": "afkar sawda",
+      "msa_equivalent": "افكار انتحارية",
+      "english_medical_term": "suicidal ideation / dark thoughts",
+      "category": "mental_health",
+      "body_system": "psychiatric",
+      "severity_hint": "critical"
+    },
+    {
+      "dialect_term": "هلاوس",
+      "dialect_term_latin": "halawis",
+      "msa_equivalent": "هلوسة",
+      "english_medical_term": "hallucinations",
+      "category": "mental_health",
+      "body_system": "psychiatric",
+      "severity_hint": "severe"
+    },
+    {
+      "dialect_term": "مجنون",
+      "dialect_term_latin": "majnoun",
+      "msa_equivalent": "اضطراب نفسي حاد",
+      "english_medical_term": "acute psychiatric disturbance / psychosis",
+      "category": "mental_health",
+      "body_system": "psychiatric",
+      "severity_hint": "severe"
+    },
+    {
+      "dialect_term": "باني",
+      "dialect_term_latin": "bani",
+      "msa_equivalent": "حالة هوسية",
+      "english_medical_term": "manic episode / euphoric state",
+      "category": "mental_health",
+      "body_system": "psychiatric",
+      "severity_hint": "moderate_to_severe"
+    },
+    {
+      "dialect_term": "بيرعش",
+      "dialect_term_latin": "bira3ish",
+      "msa_equivalent": "رعشة ارتعاش",
+      "english_medical_term": "tremor",
+      "category": "mental_health",
+      "body_system": "neurological",
+      "severity_hint": "mild_to_moderate"
+    },
+    {
+      "dialect_term": "فقدان الذاكرة",
+      "dialect_term_latin": "fo3dan l-zakira",
+      "msa_equivalent": "فقدان الذاكرة",
+      "english_medical_term": "memory loss / amnesia",
+      "category": "mental_health",
+      "body_system": "neurological",
+      "severity_hint": "moderate_to_severe"
+    },
+    {
+      "dialect_term": "خرف",
+      "dialect_term_latin": "kharf",
+      "msa_equivalent": "خرف ضعف ادراكي",
+      "english_medical_term": "dementia / cognitive decline",
+      "category": "mental_health",
+      "body_system": "neurological",
+      "severity_hint": "severe"
+    },
+    {
+      "dialect_term": "اجهاد",
+      "dialect_term_latin": "ijhad",
+      "msa_equivalent": "اجهاد ارهاق نفسي",
+      "english_medical_term": "burnout / mental exhaustion",
+      "category": "mental_health",
+      "body_system": "psychiatric",
+      "severity_hint": "mild_to_moderate"
+    },
+    {
+      "dialect_term": "قوي على قلبو",
+      "dialect_term_latin": "awi 3a albo",
+      "msa_equivalent": "ضغط نفسي شديد",
+      "english_medical_term": "severe emotional distress / psychosocial stress",
+      "category": "mental_health",
+      "body_system": "psychiatric",
+      "severity_hint": "moderate"
+    },
+    {
+      "dialect_term": "مانزدان",
+      "dialect_term_latin": "manzadan",
+      "msa_equivalent": "اكتئاب ما بعد الولادة",
+      "english_medical_term": "postpartum depression",
+      "category": "mental_health",
+      "body_system": "psychiatric",
+      "severity_hint": "moderate_to_severe"
+    },
+    {
+      "dialect_term": "هلع",
+      "dialect_term_latin": "hala3",
+      "msa_equivalent": "نوبة هلع",
+      "english_medical_term": "panic attack",
+      "category": "mental_health",
+      "body_system": "psychiatric",
+      "severity_hint": "moderate_to_severe"
+    },
+    {
+      "dialect_term": "حرارة الطفل",
+      "dialect_term_latin": "hararet l-tifl",
+      "msa_equivalent": "حمى الطفل",
+      "english_medical_term": "child fever / pediatric pyrexia",
+      "category": "childrens_symptoms",
+      "body_system": "general",
+      "severity_hint": "moderate"
+    },
+    {
+      "dialect_term": "بكي ما بيوقف",
+      "dialect_term_latin": "bki ma biwo3if",
+      "msa_equivalent": "بكاء مستمر",
+      "english_medical_term": "inconsolable crying / colic (infant)",
+      "category": "childrens_symptoms",
+      "body_system": "general",
+      "severity_hint": "moderate"
+    },
+    {
+      "dialect_term": "مابيوكل",
+      "dialect_term_latin": "ma byokol",
+      "msa_equivalent": "رفض الطعام",
+      "english_medical_term": "feeding refusal / pediatric anorexia",
+      "category": "childrens_symptoms",
+      "body_system": "general",
+      "severity_hint": "mild_to_moderate"
+    },
+    {
+      "dialect_term": "خرج بقع",
+      "dialect_term_latin": "khara3 bu3a3",
+      "msa_equivalent": "طفح جلدي عند الاطفال",
+      "english_medical_term": "pediatric rash / exanthem",
+      "category": "childrens_symptoms",
+      "body_system": "dermatological",
+      "severity_hint": "mild_to_moderate"
+    },
+    {
+      "dialect_term": "جرثومة",
+      "dialect_term_latin": "jarthoume",
+      "msa_equivalent": "عدوى جرثومة",
+      "english_medical_term": "infection / bacterial or viral illness",
+      "category": "childrens_symptoms",
+      "body_system": "general",
+      "severity_hint": "moderate"
+    },
+    {
+      "dialect_term": "اسهال الاطفال",
+      "dialect_term_latin": "ishal l-atfal",
+      "msa_equivalent": "اسهال الاطفال",
+      "english_medical_term": "pediatric diarrhea / gastroenteritis",
+      "category": "childrens_symptoms",
+      "body_system": "digestive",
+      "severity_hint": "moderate"
+    },
+    {
+      "dialect_term": "تسنين",
+      "dialect_term_latin": "tasnin",
+      "msa_equivalent": "التسنين",
+      "english_medical_term": "teething",
+      "category": "childrens_symptoms",
+      "body_system": "dental",
+      "severity_hint": "mild"
+    },
+    {
+      "dialect_term": "انتفاخ بطن الطفل",
+      "dialect_term_latin": "intifakh batn l-tifl",
+      "msa_equivalent": "انتفاخ البطن عند الاطفال",
+      "english_medical_term": "pediatric abdominal distension",
+      "category": "childrens_symptoms",
+      "body_system": "digestive",
+      "severity_hint": "moderate"
+    },
+    {
+      "dialect_term": "تشنج حراري",
+      "dialect_term_latin": "tashannoj harari",
+      "msa_equivalent": "تشنج حموي",
+      "english_medical_term": "febrile seizure",
+      "category": "childrens_symptoms",
+      "body_system": "neurological",
+      "severity_hint": "severe"
+    },
+    {
+      "dialect_term": "حساس",
+      "dialect_term_latin": "hhasas",
+      "msa_equivalent": "حساسية الاطفال",
+      "english_medical_term": "allergic / hypersensitive child",
+      "category": "childrens_symptoms",
+      "body_system": "immunological",
+      "severity_hint": "mild_to_moderate"
+    },
+    {
+      "dialect_term": "مش نايم",
+      "dialect_term_latin": "mish nayyim",
+      "msa_equivalent": "اضطراب النوم الاطفال",
+      "english_medical_term": "pediatric sleep disturbance",
+      "category": "childrens_symptoms",
+      "body_system": "general",
+      "severity_hint": "mild"
+    },
+    {
+      "dialect_term": "ما بيطلع اسنان",
+      "dialect_term_latin": "ma byitla3 asnan",
+      "msa_equivalent": "تأخر ظهور الاسنان",
+      "english_medical_term": "delayed dentition / late teething",
+      "category": "childrens_symptoms",
+      "body_system": "dental",
+      "severity_hint": "mild"
+    },
+    {
+      "dialect_term": "حموضة",
+      "dialect_term_latin": "hmouda",
+      "msa_equivalent": "حموضة المعدة",
+      "english_medical_term": "gastric acidity / acid reflux",
+      "category": "digestive",
+      "body_system": "digestive",
+      "severity_hint": "mild_to_moderate"
+    },
+    {
+      "dialect_term": "قرقرة",
+      "dialect_term_latin": "ar3ara",
+      "msa_equivalent": "قرقرة معوية",
+      "english_medical_term": "borborygmi / intestinal gurgling",
+      "category": "digestive",
+      "body_system": "digestive",
+      "severity_hint": "mild"
+    },
+    {
+      "dialect_term": "التهاب معدة",
+      "dialect_term_latin": "iltihab m3ide",
+      "msa_equivalent": "التهاب المعدة",
+      "english_medical_term": "gastritis",
+      "category": "digestive",
+      "body_system": "digestive",
+      "severity_hint": "moderate"
+    },
+    {
+      "dialect_term": "التهاب امعاء",
+      "dialect_term_latin": "iltihab amaa3",
+      "msa_equivalent": "التهاب الامعاء",
+      "english_medical_term": "enteritis / inflammatory bowel disease",
+      "category": "digestive",
+      "body_system": "digestive",
+      "severity_hint": "moderate_to_severe"
+    },
+    {
+      "dialect_term": "زائدة",
+      "dialect_term_latin": "zayyde",
+      "msa_equivalent": "التهاب الزائدة الدودية",
+      "english_medical_term": "appendicitis",
+      "category": "digestive",
+      "body_system": "digestive",
+      "severity_hint": "severe"
+    },
+    {
+      "dialect_term": "مرارة",
+      "dialect_term_latin": "mrara",
+      "msa_equivalent": "التهاب المرارة",
+      "english_medical_term": "gallbladder / cholecystitis",
+      "category": "digestive",
+      "body_system": "digestive",
+      "severity_hint": "moderate_to_severe"
+    },
+    {
+      "dialect_term": "وجع مرارة",
+      "dialect_term_latin": "waja3 mrara",
+      "msa_equivalent": "ألم المرارة",
+      "english_medical_term": "biliary colic / gallbladder pain",
+      "category": "digestive",
+      "body_system": "digestive",
+      "severity_hint": "severe"
+    },
+    {
+      "dialect_term": "دم في البراز",
+      "dialect_term_latin": "damm bil-braz",
+      "msa_equivalent": "دم في البراز",
+      "english_medical_term": "rectal bleeding / hematochezia",
+      "category": "digestive",
+      "body_system": "digestive",
+      "severity_hint": "severe"
+    },
+    {
+      "dialect_term": "بواسير",
+      "dialect_term_latin": "bwasir",
+      "msa_equivalent": "بواسير",
+      "english_medical_term": "hemorrhoids",
+      "category": "digestive",
+      "body_system": "digestive",
+      "severity_hint": "mild_to_moderate"
+    },
+    {
+      "dialect_term": "يرقان",
+      "dialect_term_latin": "yara3an",
+      "msa_equivalent": "يرقان اصفرار",
+      "english_medical_term": "jaundice / icterus",
+      "category": "digestive",
+      "body_system": "digestive",
+      "severity_hint": "moderate_to_severe"
+    },
+    {
+      "dialect_term": "اللون اصفر",
+      "dialect_term_latin": "l-loun assfar",
+      "msa_equivalent": "اصفرار الجلد",
+      "english_medical_term": "skin yellowing / jaundice sign",
+      "category": "digestive",
+      "body_system": "digestive",
+      "severity_hint": "moderate_to_severe"
+    },
+    {
+      "dialect_term": "بولو اصفر غامق",
+      "dialect_term_latin": "boulo assfar ghamek",
+      "msa_equivalent": "بول داكن",
+      "english_medical_term": "dark urine / bilirubinuria",
+      "category": "digestive",
+      "body_system": "urological",
+      "severity_hint": "moderate"
+    },
+    {
+      "dialect_term": "التهاب كبدة",
+      "dialect_term_latin": "iltihab kibde",
+      "msa_equivalent": "التهاب الكبد",
+      "english_medical_term": "hepatitis",
+      "category": "digestive",
+      "body_system": "digestive",
+      "severity_hint": "moderate_to_severe"
+    },
+    {
+      "dialect_term": "كرش ناشف",
+      "dialect_term_latin": "kirsh nashif",
+      "msa_equivalent": "امتناع البطن",
+      "english_medical_term": "abdominal rigidity / guarding",
+      "category": "digestive",
+      "body_system": "digestive",
+      "severity_hint": "severe"
+    },
+    {
+      "dialect_term": "بلع تقيل",
+      "dialect_term_latin": "bla3 t3il",
+      "msa_equivalent": "صعوبة في البلع",
+      "english_medical_term": "dysphagia / difficulty swallowing",
+      "category": "digestive",
+      "body_system": "digestive",
+      "severity_hint": "moderate_to_severe"
+    },
+    {
+      "dialect_term": "امساك مزمن",
+      "dialect_term_latin": "imsak mazmen",
+      "msa_equivalent": "امساك مزمن",
+      "english_medical_term": "chronic constipation",
+      "category": "digestive",
+      "body_system": "digestive",
+      "severity_hint": "moderate"
+    },
+    {
+      "dialect_term": "قرح معدة",
+      "dialect_term_latin": "ar7 m3ide",
+      "msa_equivalent": "قرحة معدة",
+      "english_medical_term": "gastric ulcer / peptic ulcer",
+      "category": "digestive",
+      "body_system": "digestive",
+      "severity_hint": "moderate_to_severe"
+    },
+    {
+      "dialect_term": "تجشؤ",
+      "dialect_term_latin": "tajashu",
+      "msa_equivalent": "جشاء",
+      "english_medical_term": "belching / eructation",
+      "category": "digestive",
+      "body_system": "digestive",
+      "severity_hint": "mild"
+    },
+    {
+      "dialect_term": "كحة جافة",
+      "dialect_term_latin": "kahe jafe",
+      "msa_equivalent": "سعال جاف",
+      "english_medical_term": "dry cough / non-productive cough",
+      "category": "respiratory",
+      "body_system": "respiratory",
+      "severity_hint": "mild_to_moderate"
+    },
+    {
+      "dialect_term": "كحة مع بلغم",
+      "dialect_term_latin": "kahe ma3 balgham",
+      "msa_equivalent": "سعال مع بلغم",
+      "english_medical_term": "productive cough / cough with sputum",
+      "category": "respiratory",
+      "body_system": "respiratory",
+      "severity_hint": "moderate"
+    },
+    {
+      "dialect_term": "بلغم",
+      "dialect_term_latin": "balgham",
+      "msa_equivalent": "بلغم",
+      "english_medical_term": "sputum / phlegm",
+      "category": "respiratory",
+      "body_system": "respiratory",
+      "severity_hint": "mild_to_moderate"
+    },
+    {
+      "dialect_term": "التهاب رئة",
+      "dialect_term_latin": "iltihab riye",
+      "msa_equivalent": "التهاب الرئة",
+      "english_medical_term": "pneumonia",
+      "category": "respiratory",
+      "body_system": "respiratory",
+      "severity_hint": "severe"
+    },
+    {
+      "dialect_term": "التهاب قصبات",
+      "dialect_term_latin": "iltihab 3usabat",
+      "msa_equivalent": "التهاب القصبات الهوائية",
+      "english_medical_term": "bronchitis",
+      "category": "respiratory",
+      "body_system": "respiratory",
+      "severity_hint": "moderate"
+    },
+    {
+      "dialect_term": "انفلونزا",
+      "dialect_term_latin": "influwanza",
+      "msa_equivalent": "انفلونزا",
+      "english_medical_term": "influenza / flu",
+      "category": "respiratory",
+      "body_system": "respiratory",
+      "severity_hint": "moderate"
+    },
+    {
+      "dialect_term": "تهيج حلق",
+      "dialect_term_latin": "tahyij ala3",
+      "msa_equivalent": "التهاب الحلق",
+      "english_medical_term": "pharyngitis / sore throat",
+      "category": "respiratory",
+      "body_system": "respiratory",
+      "severity_hint": "mild_to_moderate"
+    },
+    {
+      "dialect_term": "لوزتين",
+      "dialect_term_latin": "lawztein",
+      "msa_equivalent": "لوزتان",
+      "english_medical_term": "tonsils / tonsillitis",
+      "category": "respiratory",
+      "body_system": "ENT",
+      "severity_hint": "mild_to_moderate"
+    },
+    {
+      "dialect_term": "التهاب لوزتين",
+      "dialect_term_latin": "iltihab lawztein",
+      "msa_equivalent": "التهاب اللوزتين",
+      "english_medical_term": "tonsillitis",
+      "category": "respiratory",
+      "body_system": "ENT",
+      "severity_hint": "moderate"
+    },
+    {
+      "dialect_term": "انف مسدود",
+      "dialect_term_latin": "anf massdoud",
+      "msa_equivalent": "انسداد انفي",
+      "english_medical_term": "nasal congestion / blocked nose",
+      "category": "respiratory",
+      "body_system": "respiratory",
+      "severity_hint": "mild"
+    },
+    {
+      "dialect_term": "جيوب انفية",
+      "dialect_term_latin": "jyoub anfiyye",
+      "msa_equivalent": "التهاب الجيوب الانفية",
+      "english_medical_term": "sinusitis",
+      "category": "respiratory",
+      "body_system": "ENT",
+      "severity_hint": "mild_to_moderate"
+    },
+    {
+      "dialect_term": "نزلة برد",
+      "dialect_term_latin": "nazlet bard",
+      "msa_equivalent": "نزلة برد",
+      "english_medical_term": "common cold / upper respiratory tract infection",
+      "category": "respiratory",
+      "body_system": "respiratory",
+      "severity_hint": "mild"
+    },
+    {
+      "dialect_term": "ما قادر يتنفس بالليل",
+      "dialect_term_latin": "ma ader yitnaffas bil-leil",
+      "msa_equivalent": "صعوبة التنفس الليلية",
+      "english_medical_term": "orthopnea / nocturnal dyspnea",
+      "category": "respiratory",
+      "body_system": "respiratory",
+      "severity_hint": "severe"
+    },
+    {
+      "dialect_term": "دم مع الكحة",
+      "dialect_term_latin": "damm ma3 l-kahe",
+      "msa_equivalent": "نفث الدم",
+      "english_medical_term": "hemoptysis / coughing blood",
+      "category": "respiratory",
+      "body_system": "respiratory",
+      "severity_hint": "severe"
+    },
+    {
+      "dialect_term": "انتفاخ رقبة",
+      "dialect_term_latin": "intifakh ra3ba",
+      "msa_equivalent": "تضخم الغدد اللمفاوية",
+      "english_medical_term": "lymphadenopathy / swollen lymph nodes",
+      "category": "respiratory",
+      "body_system": "immunological",
+      "severity_hint": "mild_to_moderate"
+    },
+    {
+      "dialect_term": "غدد",
+      "dialect_term_latin": "ghudad",
+      "msa_equivalent": "العقد اللمفاوية",
+      "english_medical_term": "lymph nodes / glands",
+      "category": "respiratory",
+      "body_system": "immunological",
+      "severity_hint": "mild"
+    },
+    {
+      "dialect_term": "ما شم",
+      "dialect_term_latin": "ma sham",
+      "msa_equivalent": "فقدان حاسة الشم",
+      "english_medical_term": "anosmia / loss of smell",
+      "category": "respiratory",
+      "body_system": "neurological",
+      "severity_hint": "mild_to_moderate"
+    },
+    {
+      "dialect_term": "ما حاسس بالطعم",
+      "dialect_term_latin": "ma hases bil-ta3m",
+      "msa_equivalent": "فقدان حاسة التذوق",
+      "english_medical_term": "ageusia / loss of taste",
+      "category": "respiratory",
+      "body_system": "neurological",
+      "severity_hint": "mild_to_moderate"
+    },
+    {
+      "dialect_term": "الم الصدر",
+      "dialect_term_latin": "alam l-sadr",
+      "msa_equivalent": "ألم في الصدر",
+      "english_medical_term": "chest pain / angina",
+      "category": "cardiovascular",
+      "body_system": "cardiovascular",
+      "severity_hint": "severe"
+    },
+    {
+      "dialect_term": "ضيقة صدر",
+      "dialect_term_latin": "di3et sadr",
+      "msa_equivalent": "ضيق في الصدر",
+      "english_medical_term": "chest tightness / anginal equivalent",
+      "category": "cardiovascular",
+      "body_system": "cardiovascular",
+      "severity_hint": "severe"
+    },
+    {
+      "dialect_term": "ذبحة",
+      "dialect_term_latin": "zabhe",
+      "msa_equivalent": "ذبحة صدرية",
+      "english_medical_term": "angina pectoris",
+      "category": "cardiovascular",
+      "body_system": "cardiovascular",
+      "severity_hint": "severe"
+    },
+    {
+      "dialect_term": "قلبو بيتعب",
+      "dialect_term_latin": "3albo bita3ab",
+      "msa_equivalent": "قصور القلب",
+      "english_medical_term": "heart failure / cardiac fatigue",
+      "category": "cardiovascular",
+      "body_system": "cardiovascular",
+      "severity_hint": "severe"
+    },
+    {
+      "dialect_term": "دقة قلب سريعة",
+      "dialect_term_latin": "da3et alb sari3a",
+      "msa_equivalent": "تسارع القلب",
+      "english_medical_term": "tachycardia / rapid heart rate",
+      "category": "cardiovascular",
+      "body_system": "cardiovascular",
+      "severity_hint": "moderate_to_severe"
+    },
+    {
+      "dialect_term": "دقة قلب بطيئة",
+      "dialect_term_latin": "da3et alb bati3a",
+      "msa_equivalent": "بطء القلب",
+      "english_medical_term": "bradycardia / slow heart rate",
+      "category": "cardiovascular",
+      "body_system": "cardiovascular",
+      "severity_hint": "moderate_to_severe"
+    },
+    {
+      "dialect_term": "اضطراب دقات",
+      "dialect_term_latin": "idtirab da3at",
+      "msa_equivalent": "عدم انتظام ضربات القلب",
+      "english_medical_term": "arrhythmia / irregular heartbeat",
+      "category": "cardiovascular",
+      "body_system": "cardiovascular",
+      "severity_hint": "moderate_to_severe"
+    },
+    {
+      "dialect_term": "اوردة باينة",
+      "dialect_term_latin": "awride bayni",
+      "msa_equivalent": "دوالي الاوردة",
+      "english_medical_term": "varicose veins",
+      "category": "cardiovascular",
+      "body_system": "cardiovascular",
+      "severity_hint": "mild_to_moderate"
+    },
+    {
+      "dialect_term": "رجليه منتفخة",
+      "dialect_term_latin": "rijleih montafkhe",
+      "msa_equivalent": "وذمة القدمين",
+      "english_medical_term": "pedal edema / leg swelling",
+      "category": "cardiovascular",
+      "body_system": "cardiovascular",
+      "severity_hint": "moderate_to_severe"
+    },
+    {
+      "dialect_term": "تعب مع المشي",
+      "dialect_term_latin": "ta3ab ma3 l-mashi",
+      "msa_equivalent": "ضيق التنفس عند المجهود",
+      "english_medical_term": "exertional dyspnea / angina on exertion",
+      "category": "cardiovascular",
+      "body_system": "cardiovascular",
+      "severity_hint": "moderate_to_severe"
+    },
+    {
+      "dialect_term": "برود الاطراف",
+      "dialect_term_latin": "buroud l-atraf",
+      "msa_equivalent": "برودة الاطراف",
+      "english_medical_term": "cold extremities / peripheral vascular disease",
+      "category": "cardiovascular",
+      "body_system": "cardiovascular",
+      "severity_hint": "moderate"
+    },
+    {
+      "dialect_term": "طنين في الراس مع ضغط",
+      "dialect_term_latin": "tannin fil-ras ma3 daght",
+      "msa_equivalent": "صداع ضغطي",
+      "english_medical_term": "hypertensive headache",
+      "category": "cardiovascular",
+      "body_system": "cardiovascular",
+      "severity_hint": "moderate_to_severe"
+    }
+  ]
+}
