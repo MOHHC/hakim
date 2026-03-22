@@ -6,8 +6,9 @@ export default function LanguageToggle() {
   return (
     <button
       onClick={toggleLanguage}
-      className="px-3 py-1.5 text-sm font-medium rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"
+      className="hakim-toolbar-btn"
       aria-label="Toggle language"
+      style={{ padding: '4px 12px', fontSize: '0.75rem', fontWeight: 600 }}
     >
       {t('toggleLang')}
     </button>

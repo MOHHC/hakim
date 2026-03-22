@@ -32,6 +32,13 @@ const translations = {
     typing: '\u062d\u0643\u064a\u0645 \u0639\u0645 \u064a\u0641\u0643\u0631...',
     errorMessage: '\u0635\u0627\u0631 \u062e\u0637\u0623\u060c \u062c\u0631\u0628 \u0645\u0631\u0629 \u062a\u0627\u0646\u064a\u0629',
     analyzing: '\u062c\u0627\u0631\u064a \u0627\u0644\u062a\u062d\u0644\u064a\u0644...',
+    featureAnalysis: '\u062a\u062d\u0644\u064a\u0644 \u0627\u0644\u0623\u0639\u0631\u0627\u0636',
+    featureAnalysisDesc: '\u0627\u0648\u0635\u0641 \u0634\u0648 \u0639\u0645 \u062a\u062d\u0633 \u0641\u064a\u0647 \u0648\u062d\u0643\u064a\u0645 \u0628\u064a\u062d\u0644\u0644\u0647\u0627',
+    featureTriage: '\u062a\u0642\u064a\u064a\u0645 \u0627\u0644\u0627\u0633\u062a\u0639\u062c\u0627\u0644',
+    featureTriageDesc: '\u0628\u062a\u0627\u062e\u062f \u0645\u0633\u062a\u0648\u0649 \u0623\u0648\u0644\u0648\u064a\u0629: \u0623\u062e\u0636\u0631\u060c \u0623\u0635\u0641\u0631\u060c \u0623\u0648 \u0623\u062d\u0645\u0631',
+    featurePrivate: '\u062e\u0627\u0635 \u0648\u0622\u0645\u0646',
+    featurePrivateDesc: '\u0628\u064a\u0627\u0646\u0627\u062a\u0643 \u0627\u0644\u0634\u062e\u0635\u064a\u0629 \u0645\u0627 \u0628\u062a\u0646\u062d\u0641\u0638 \u0623\u0628\u062f\u0627\u064b',
+    tryAsking: '\u062c\u0631\u0628 \u0627\u0633\u0623\u0644',
   },
   en: {
     appName: 'Hakim',
@@ -56,6 +63,13 @@ const translations = {
     typing: 'Hakim is thinking...',
     errorMessage: 'Something went wrong, please try again',
     analyzing: 'Analyzing...',
+    featureAnalysis: 'Symptom Analysis',
+    featureAnalysisDesc: 'Describe what you feel and Hakim will analyze it',
+    featureTriage: 'Urgency Assessment',
+    featureTriageDesc: 'Get a priority level: Green, Yellow, or Red',
+    featurePrivate: 'Private & Secure',
+    featurePrivateDesc: 'Your personal data is never stored',
+    tryAsking: 'Try asking',
   },
 } as const
 

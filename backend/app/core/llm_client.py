@@ -1,9 +1,11 @@
-"""LLM client with Gemini primary and Groq fallback."""
+"""LLM client with Gemini primary, Groq fallback, caching, and rate limiting."""
 
 import asyncio
+import hashlib
 import json
 import logging
 import time
+from collections import OrderedDict
 from collections.abc import AsyncGenerator
 from dataclasses import dataclass, field
 from typing import Any
@@ -32,7 +34,7 @@ GEMINI_CONFIG = ProviderConfig(
     name="gemini",
     base_url="https://generativelanguage.googleapis.com/v1beta",
     api_key=settings.gemini_api_key,
-    model="gemini-2.5-flash-preview-04-17",
+    model="gemini-2.5-flash",
     # Gemini uses query-param key, not Authorization header
     auth_header="x-goog-api-key",
     auth_prefix="",
@@ -61,8 +63,79 @@ class LLMError(Exception):
     pass
 
 
+# ---------------------------------------------------------------------------
+# Response Cache — in-memory LRU with TTL
+# ---------------------------------------------------------------------------
+
+class _ResponseCache:
+    """Simple in-memory LRU cache with TTL for non-streaming LLM responses."""
+
+    def __init__(self, max_size: int = 256, ttl_seconds: float = 600.0) -> None:
+        self._max_size = max_size
+        self._ttl = ttl_seconds
+        self._store: OrderedDict[str, tuple[float, LLMResponse]] = OrderedDict()
+
+    @staticmethod
+    def _make_key(prompt: str, system_prompt: str, temperature: float, max_tokens: int) -> str:
+        raw = f"{system_prompt}||{prompt}||{temperature}||{max_tokens}"
+        return hashlib.sha256(raw.encode()).hexdigest()
+
+    def get(self, prompt: str, system_prompt: str, temperature: float, max_tokens: int) -> LLMResponse | None:
+        key = self._make_key(prompt, system_prompt, temperature, max_tokens)
+        entry = self._store.get(key)
+        if entry is None:
+            return None
+        ts, resp = entry
+        if time.monotonic() - ts > self._ttl:
+            del self._store[key]
+            return None
+        # Move to end (most recently used)
+        self._store.move_to_end(key)
+        logger.debug("Cache HIT for prompt hash %s…", key[:12])
+        return resp
+
+    def put(self, prompt: str, system_prompt: str, temperature: float, max_tokens: int, response: LLMResponse) -> None:
+        # Only cache deterministic-ish responses (low temperature)
+        if temperature > 0.2:
+            return
+        key = self._make_key(prompt, system_prompt, temperature, max_tokens)
+        self._store[key] = (time.monotonic(), response)
+        self._store.move_to_end(key)
+        # Evict oldest if over capacity
+        while len(self._store) > self._max_size:
+            self._store.popitem(last=False)
+
+
+# ---------------------------------------------------------------------------
+# Rate Limiter — token bucket for Gemini free tier (15 RPM)
+# ---------------------------------------------------------------------------
+
+class _RateLimiter:
+    """Async token bucket rate limiter."""
+
+    def __init__(self, max_rpm: int = 15) -> None:
+        self._interval = 60.0 / max_rpm  # seconds between requests
+        self._lock = asyncio.Lock()
+        self._last_request: float = 0.0
+
+    async def acquire(self) -> None:
+        async with self._lock:
+            now = time.monotonic()
+            elapsed = now - self._last_request
+            if elapsed < self._interval:
+                wait = self._interval - elapsed
+                logger.debug("Rate limiter: waiting %.1fs", wait)
+                await asyncio.sleep(wait)
+            self._last_request = time.monotonic()
+
+
+# Module-level singletons
+_cache = _ResponseCache()
+_gemini_limiter = _RateLimiter(max_rpm=14)  # Stay safely under 15 RPM
+
+
 class LLMClient:
-    """Async LLM client with Gemini primary, Groq fallback, and retry logic."""
+    """Async LLM client with Gemini primary, Groq fallback, caching, and rate limiting."""
 
     MAX_RETRIES = 3
     RETRY_BASE_DELAY = 1.0  # seconds
@@ -77,12 +150,21 @@ class LLMClient:
         temperature: float = 0.3,
         max_tokens: int = 1024,
     ) -> LLMResponse:
-        """Generate a response, trying Gemini first then Groq on failure."""
+        """Generate a response, trying cache first, then Gemini, then Groq."""
+        # Check cache
+        cached = _cache.get(prompt, system_prompt, temperature, max_tokens)
+        if cached is not None:
+            return cached
+
         for provider_cfg in (GEMINI_CONFIG, GROQ_CONFIG):
+            if not provider_cfg.api_key:
+                continue
             try:
-                return await self._generate_with_retry(
+                resp = await self._generate_with_retry(
                     provider_cfg, prompt, system_prompt, temperature, max_tokens
                 )
+                _cache.put(prompt, system_prompt, temperature, max_tokens, resp)
+                return resp
             except LLMError as exc:
                 logger.warning("Provider %s failed: %s — trying next", provider_cfg.name, exc)
 
@@ -117,6 +199,10 @@ class LLMClient:
         temperature: float,
         max_tokens: int,
     ) -> LLMResponse:
+        # Rate limit Gemini calls
+        if cfg.name == "gemini":
+            await _gemini_limiter.acquire()
+
         start = time.monotonic()
 
         if cfg.name == "gemini":
@@ -170,13 +256,22 @@ class LLMClient:
             resp.raise_for_status()
 
         data = resp.json()
-        candidate = data["candidates"][0]["content"]["parts"][0]["text"]
+        # Gemini 2.5+ may return parts without text (thinking tokens) — find first text part
+        candidate_text = ""
+        parts = data.get("candidates", [{}])[0].get("content", {}).get("parts", [])
+        for part in parts:
+            if "text" in part:
+                candidate_text = part["text"]
+                break
+        if not candidate_text:
+            raise LLMError(f"Gemini returned no text. Response: {json.dumps(data)[:300]}")
+
         usage = data.get("usageMetadata", {})
         prompt_tokens = usage.get("promptTokenCount", 0)
         completion_tokens = usage.get("candidatesTokenCount", 0)
 
         return LLMResponse(
-            text=candidate,
+            text=candidate_text,
             provider=cfg.name,
             model=cfg.model,
             prompt_tokens=prompt_tokens,
@@ -252,6 +347,10 @@ class LLMClient:
             accumulated: list[str] = []
             start = time.monotonic()
             try:
+                # Rate limit Gemini streaming calls too
+                if cfg.name == "gemini":
+                    await _gemini_limiter.acquire()
+
                 async for chunk in stream_method(cfg, prompt, system_prompt, temperature, max_tokens):
                     yield chunk
                     accumulated.append(chunk)
@@ -320,9 +419,12 @@ class LLMClient:
                         continue
                     try:
                         data = json.loads(data_str)
-                        text = data["candidates"][0]["content"]["parts"][0]["text"]
-                        if text:
-                            yield text
+                        # Gemini 2.5+ may have thinking parts without text
+                        parts = data.get("candidates", [{}])[0].get("content", {}).get("parts", [])
+                        for part in parts:
+                            text = part.get("text", "")
+                            if text:
+                                yield text
                     except (KeyError, IndexError, json.JSONDecodeError):
                         continue
 

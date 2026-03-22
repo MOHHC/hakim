@@ -9,16 +9,17 @@ export default function SourceCitation({ sources }: { sources: Source[] }) {
   if (!sources.length) return null
 
   return (
-    <div className="mt-2">
+    <div style={{ marginTop: 8 }}>
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center gap-1 text-xs text-teal-600 dark:text-teal-400 hover:underline"
+        className="hakim-source-btn"
       >
         <svg
-          className={`w-3 h-3 transition-transform ${isOpen ? 'rotate-90' : ''}`}
+          width="12" height="12"
           fill="none"
           stroke="currentColor"
           viewBox="0 0 24 24"
+          style={{ transition: 'transform 0.2s', transform: isOpen ? 'rotate(90deg)' : 'none' }}
         >
           <path
             strokeLinecap="round"
@@ -31,19 +32,19 @@ export default function SourceCitation({ sources }: { sources: Source[] }) {
       </button>
 
       {isOpen && (
-        <div className="mt-1.5 space-y-1.5">
+        <div style={{ marginTop: 6, display: 'flex', flexDirection: 'column', gap: 6 }}>
           {sources.map((source, i) => (
-            <div
-              key={i}
-              className="text-xs bg-slate-50 dark:bg-slate-800/50 rounded-lg p-2 border border-slate-200 dark:border-slate-700"
-            >
+            <div key={i} className="hakim-source-card">
               {source.title && (
-                <p className="font-medium text-slate-700 dark:text-slate-300">
+                <p className="hakim-source-title" style={{ margin: 0 }}>
                   {source.title}
                 </p>
               )}
               {source.content && (
-                <p className="text-slate-500 dark:text-slate-400 mt-0.5 line-clamp-2">
+                <p className="hakim-source-content" style={{
+                  margin: 0, display: '-webkit-box',
+                  WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden',
+                }}>
                   {source.content}
                 </p>
               )}

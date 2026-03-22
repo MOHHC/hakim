@@ -70,6 +70,25 @@ _SYSTEM_PROMPT = (
     "(3) Do NOT add any disclaimer — the app already shows one."
 )
 
+_SYSTEM_PROMPT_FRANCO = (
+    "You are Hakim, a warm and trusted medical triage assistant who speaks authentic Lebanese dialect. "
+    "You grew up in Beirut and text EXACTLY like a young Lebanese person on WhatsApp — using Franco-Arab (Arabic words written in Latin letters with numbers). "
+    "CRITICAL: You MUST write ONLY in Latin letters. NEVER use Arabic script (ع, ش, ح, etc.). Every single character must be Latin a-z or numbers 2,3,5,7,8.\n"
+    "Lebanese Franco vocabulary you MUST use: "
+    "shu (what), hayda/haydi (this), ktir (very), msh (not), ra7 (will), 3am (currently), "
+    "mtel (like), ya3ne (meaning), bas (but/just), ta (so that), hek (like this), hala2 (now), "
+    "yalla (come on), 7abibi (dear), ma3le (it's ok), shi (something), wen (where), kif (how), "
+    "lesh (why), 3ala (on), men (from), la2 (no), eh (yes), w (and), aw (or).\n"
+    "Medical Franco words: waja3 (pain), 7arara/7amma (fever), ko7a/su3al (cough), "
+    "dawkha (dizziness), daght (pressure), sadr (chest), batn (stomach), ras (head), "
+    "daher/dahre (back), 3ein (eye), tene (second/other), eltiheb (infection/inflammation).\n"
+    "Number sounds: 2=hamza/glottal stop, 3=ain, 5=kha, 7=strong h, 8=ghain.\n"
+    "Rules: (1) NEVER diagnose — say 'momken ykun' or 'fi e7temel'. "
+    "(2) Never name medications or dosages. "
+    "(3) Do NOT add any disclaimer — the app already shows one. "
+    "(4) ABSOLUTELY NO Arabic script characters anywhere in your response."
+)
+
 _TRIAGE_PROMPT = (
     "The patient's input may be in Lebanese Arabic, Franco-Arab (Arabic written in Latin letters), or English.\n"
     "Franco-Arab glossary: dahre/dahri=back, batn=stomach, ras=head, sadr=chest, 3ayne/3ein=eye, "
@@ -94,7 +113,7 @@ _TRIAGE_PROMPT = (
 
 _RESPONSE_PROMPT = 'Write a warm response in Lebanese colloquial Arabic (3ammiye) using Arabic script only. NOT Latin letters, NOT Modern Standard Arabic.\n\nPatient symptoms: {symptoms_text}\nTriage level: {triage_level}\nPossible conditions: {conditions}\nRecommended actions: {actions}\n\nStyle examples (match this natural Lebanese tone):\nهلق هيدا الوجع بالضهر ممكن يكون من العضلات أو من شي تاني. حاول تريّح شوي وإذا ضل أكتر من يومين روح عالدكتور.\nيي شو صعبة هالحالة. ممكن يكون عندك التهاب أو شي متل هيك. لازم تروح تتفحص بأقرب وقت.\n\nRules:\n- Talk like a real Lebanese friend giving advice, natural and direct\n- Use Lebanese words: شو، هيدا/هيدي، كتير، مش، رح، عم بـ، متل، يعني، بس، تا، هيك، هلق\n- Start with empathy then get to the point\n- Say ممكن يكون before conditions (never diagnose)\n- Be specific about what to do next (روح عالدكتور، خود راحة، etc.)\n- No medication names or dosages\n- Do NOT add any disclaimer or warning, the app handles that\n- 2-3 sentences max, keep it concise\n\nالجواب:'
 
-_RESPONSE_PROMPT_FRANCO = "Write a warm response in Lebanese Franco-Arab (Arabic dialect written in Latin letters with numbers for Arabic sounds). Use Franco-Arab transliteration like: shu, hayda/haydi, ktir, msh, ra7, 3am, mtel, ya3ne, bas, ta, hek, hala2.\n\nPatient symptoms: {symptoms_text}\nTriage level: {triage_level}\nPossible conditions: {conditions}\nRecommended actions: {actions}\n\nStyle examples (match this natural Lebanese tone):\nhala2 hayda l waja3 bel daher momken ykun men l 3adalat aw men shi tene. 7awel tree7 shway w eza dal aktar men yawmen ru7 3al doctor.\nyii shu sa3be hal 7ale. momken ykun 3andak eltiheb aw shi mtel hek. lazem tru7 tetfa7as b a2rab wa2et.\n\nRules:\n- Write in Franco-Arab (Latin letters) like Lebanese people text on WhatsApp\n- Use numbers for Arabic sounds: 2=hamza/qaf, 3=3ayn, 5=kha, 7=7a, 8=ghayn\n- Talk like a real Lebanese friend, natural and direct\n- Start with empathy then get to the point\n- Say 'momken ykun' before conditions (never diagnose)\n- Be specific about what to do next (ru7 3al doctor, khod ra7a, etc.)\n- No medication names or dosages\n- Do NOT add any disclaimer or warning, the app handles that\n- 2-3 sentences max, keep it concise\n\nel jaweb:"
+_RESPONSE_PROMPT_FRANCO = "CRITICAL INSTRUCTION: Write ONLY in Franco-Arab (Latin letters + numbers). ZERO Arabic script characters allowed.\n\nPatient symptoms: {symptoms_text}\nTriage level: {triage_level}\nPossible conditions: {conditions}\nRecommended actions: {actions}\n\nFranco-Arab examples (copy this EXACT style — Latin letters only, natural Lebanese WhatsApp texting):\n\nExample 1: hala2 hayda l waja3 bel daher momken ykun men l 3adalat aw men l a3sab. 7awel tree7 shway w 7ot shi sakhne 3al mante2a, w eza dal aktar men yawmen ru7 3and doctor.\n\nExample 2: yii shu sa3be, 7asse fike t3abene. momken ykun 3andak eltiheb aw shi mtel hek. lazem tru7 tetfa7as 3and tabib b a2rab wa2et ta yshufak.\n\nExample 3: ma t2al2al ktir bas lazem tentebi. hayda l waja3 bel sadr ma3 dawkha momken ykun men l daght aw men shi tene. ru7 3al taware2 hala2 a7san.\n\nExample 4: ahla shi tree7 3al se7a hala2 w shrab may ktir. l 7arara ma3 l su3al momken ykun rasheh aw flu. eza l 7arara telet faw2 l 38 ru7 3and l doctor.\n\nFranco number guide: 2=hamza (hala2, a2rab), 3=ain (3and, ya3ne, 3ein), 5=kha (5abar), 7=strong H (7arara, ru7), 8=ghain (8ayem)\n\nRules:\n- ONLY Latin letters (a-z) and numbers (2,3,5,7,8). NO Arabic script AT ALL.\n- Write like a Lebanese person texting on WhatsApp — casual, warm, direct\n- Start with empathy then give practical advice\n- Say 'momken ykun' before conditions (never diagnose)\n- Be specific: ru7 3al doctor, khod ra7a, shrab may, etc.\n- No medication names or dosages\n- No disclaimer or warning\n- 2-3 sentences max\n\nel jaweb:"
 
 
 
@@ -107,6 +126,15 @@ _CLARIFICATION_PROMPT = (
     "Write only the question, no preamble:"
 )
 
+_CLARIFICATION_PROMPT_FRANCO = (
+    'A Lebanese patient said: "{query}"\n\n'
+    "Extracted symptoms: {symptoms_text}\n\n"
+    "The symptoms are too vague for assessment. "
+    "Write ONE clarifying question in Lebanese Franco-Arab (Latin letters only, NO Arabic script). "
+    "Use Franco transliteration: shu, wen, 2adesh, men emta, kif, etc. "
+    "Write only the question, no preamble:"
+)
+
 _DISCLAIMER = (
     "\u26a0\ufe0f \u0647\u064a\u062f\u064a \u0627\u0644\u0645\u0639\u0644\u0648\u0645\u0627\u062a \u0645\u0627 \u0628\u062a\u063a\u0646\u064a \u0639\u0646 \u0627\u0644\u062f\u0643\u062a\u0648\u0631. "
     "\u0625\u0630\u0627 \u0627\u0644\u0648\u0636\u0639 \u0633\u0627\u0621\u060c \u0631\u0648\u062d \u0639\u0627\u0644\u0637\u0628\u064a\u0628."
@@ -115,6 +143,8 @@ _EMERGENCY_DISCLAIMER = (
     "\U0001f6a8 \u0647\u0627\u0644\u0623\u0639\u0631\u0627\u0636 \u062e\u0637\u064a\u0631\u0629 \u2014 "
     "\u0631\u0648\u062d \u0639\u0627\u0644\u0637\u0648\u0627\u0631\u0626 \u0647\u0644\u0642 \u0623\u0648 \u0627\u062a\u0635\u0644 140!"
 )
+_DISCLAIMER_FRANCO = "haydi l ma3lumet ma bteghne 3an l doctor. eza l wade3 sa2, ru7 3al tabib."
+_EMERGENCY_DISCLAIMER_FRANCO = "hal a3rad 5atire — ru7 3al taware2 hala2 aw ettesel 140!"
 
 
 # ---------------------------------------------------------------------------
@@ -164,6 +194,16 @@ class TriageEngine:
     @staticmethod
     def _get_response_prompt(script: str = "arabic") -> str:
         return _RESPONSE_PROMPT_FRANCO if script == "franco" else _RESPONSE_PROMPT
+
+    @staticmethod
+    def _get_system_prompt(script: str = "arabic") -> str:
+        return _SYSTEM_PROMPT_FRANCO if script == "franco" else _SYSTEM_PROMPT
+
+    @staticmethod
+    def _get_disclaimer(script: str = "arabic", emergency: bool = False) -> str:
+        if script == "franco":
+            return _EMERGENCY_DISCLAIMER_FRANCO if emergency else _DISCLAIMER_FRANCO
+        return _EMERGENCY_DISCLAIMER if emergency else _DISCLAIMER
 
     def __init__(
         self,
@@ -244,7 +284,7 @@ class TriageEngine:
                     ),
                     system_prompt=_SYSTEM_PROMPT,
                     temperature=0.4,
-                    max_tokens=256,
+                    max_tokens=1024,
                 )
                 total_tokens += clarify_resp.total_tokens
                 q = clarify_resp.text.strip()
@@ -275,7 +315,7 @@ class TriageEngine:
                 prompt=_TRIAGE_PROMPT.format(symptoms_text=symptoms_text, context=context, output_script="Lebanese Arabic"),
                 system_prompt=_SYSTEM_PROMPT,
                 temperature=0.1,
-                max_tokens=512,
+                max_tokens=2048,
             )
             total_tokens += classify_resp.total_tokens
             triage_level, conditions, actions = self._parse_triage_json(classify_resp.text)
@@ -292,7 +332,7 @@ class TriageEngine:
                 ),
                 system_prompt=_SYSTEM_PROMPT,
                 temperature=0.4,
-                max_tokens=768,
+                max_tokens=2048,
             )
             total_tokens += response_resp.total_tokens
 
@@ -396,9 +436,9 @@ class TriageEngine:
                     conditions="possible emergency",
                     actions="call ambulance immediately — 140",
                 ),
-                system_prompt=_SYSTEM_PROMPT,
+                system_prompt=self._get_system_prompt(response_script),
                 temperature=0.1,
-                max_tokens=512,
+                max_tokens=1024,
             ):
                 yield {"type": "chunk", "content": chunk}
             complete_event = {
@@ -407,7 +447,7 @@ class TriageEngine:
                 "possible_conditions": ["emergency"],
                 "recommended_actions": ["call ambulance immediately — 140", "go to ER now"],
                 "sources": [],
-                "disclaimer": _EMERGENCY_DISCLAIMER,
+                "disclaimer": self._get_disclaimer(response_script, emergency=True),
                 "needs_clarification": False,
                 "follow_up_question": None,
             }
@@ -418,14 +458,15 @@ class TriageEngine:
         # Step 2: Clarification
         if len(symptoms) == 0 and len(query.split()) < 2:
             obs.set_step("clarification")
+            clarify_prompt = _CLARIFICATION_PROMPT_FRANCO if response_script == "franco" else _CLARIFICATION_PROMPT
             clarify_resp = await self._llm.generate(
-                prompt=_CLARIFICATION_PROMPT.format(
+                prompt=clarify_prompt.format(
                     query=query,
                     symptoms_text=symptoms_text if symptom_labels else "nothing specific",
                 ),
-                system_prompt=_SYSTEM_PROMPT,
+                system_prompt=self._get_system_prompt(response_script),
                 temperature=0.4,
-                max_tokens=256,
+                max_tokens=1024,
             )
             q = clarify_resp.text.strip()
             yield {
@@ -443,7 +484,7 @@ class TriageEngine:
                 "possible_conditions": [],
                 "recommended_actions": [],
                 "sources": [],
-                "disclaimer": _DISCLAIMER,
+                "disclaimer": self._get_disclaimer(response_script),
                 "needs_clarification": True,
                 "follow_up_question": q,
             }
@@ -463,13 +504,13 @@ class TriageEngine:
             prompt=_TRIAGE_PROMPT.format(symptoms_text=symptoms_text, context=context, output_script="Franco-Arab (Latin letters)" if response_script == "franco" else "Lebanese Arabic"),
             system_prompt=_SYSTEM_PROMPT,
             temperature=0.1,
-            max_tokens=512,
+            max_tokens=2048,
         )
         total_tokens += classify_resp.total_tokens
         triage_level, conditions, actions = self._parse_triage_json(classify_resp.text)
 
         is_emergency = triage_level == TriageLevel.RED
-        disclaimer = _EMERGENCY_DISCLAIMER if is_emergency else _DISCLAIMER
+        disclaimer = self._get_disclaimer(response_script, emergency=is_emergency)
 
         # Emit classification before text starts streaming
         yield {
@@ -489,9 +530,9 @@ class TriageEngine:
                 conditions=", ".join(conditions) if conditions else "unspecified",
                 actions=", ".join(actions) if actions else "follow up with doctor",
             ),
-            system_prompt=_SYSTEM_PROMPT,
+            system_prompt=self._get_system_prompt(response_script),
             temperature=0.4,
-            max_tokens=768,
+            max_tokens=2048,
         ):
             yield {"type": "chunk", "content": chunk}
 
@@ -529,7 +570,7 @@ class TriageEngine:
             ),
             system_prompt=_SYSTEM_PROMPT,
             temperature=0.1,
-            max_tokens=512,
+            max_tokens=1024,
         )
         return TriageResult(
             triage_level=TriageLevel.RED,
@@ -556,13 +597,43 @@ class TriageEngine:
         text: str,
         default_level: TriageLevel = TriageLevel.YELLOW,
     ) -> tuple[TriageLevel, list[str], list[str]]:
-        """Parse LLM JSON output; return defaults on any error."""
+        """Parse LLM JSON output; return defaults on any error.
+
+        Handles truncated JSON from Gemini 2.5 thinking-token budget by
+        attempting to repair incomplete output before giving up.
+        """
         try:
             clean = re.sub(r"```(?:json)?|```", "", text).strip()
-            match = re.search(r"\{.*\}", clean, re.DOTALL)
-            if not match:
+            # Find the opening brace of JSON
+            brace_idx = clean.find("{")
+            if brace_idx == -1:
                 raise ValueError("no JSON object found")
-            data = json.loads(match.group(0))
+            json_str = clean[brace_idx:]
+
+            # Try parsing as-is first
+            try:
+                data = json.loads(json_str)
+            except json.JSONDecodeError:
+                # Attempt to repair truncated JSON:
+                # 1. Close any open strings/arrays/objects
+                repaired = json_str.rstrip()
+                if repaired.endswith(","):
+                    repaired = repaired[:-1]
+                # Close open quotes
+                if repaired.count('"') % 2 != 0:
+                    repaired += '"'
+                # Close open arrays
+                open_brackets = repaired.count("[") - repaired.count("]")
+                repaired += "]" * max(0, open_brackets)
+                # Close open objects
+                open_braces = repaired.count("{") - repaired.count("}")
+                repaired += "}" * max(0, open_braces)
+                try:
+                    data = json.loads(repaired)
+                    logger.info("Repaired truncated triage JSON successfully")
+                except json.JSONDecodeError:
+                    raise ValueError("no valid JSON object found (repair failed)")
+
             level_str = str(data.get("triage_level", "")).strip().upper()
             level = (
                 TriageLevel[level_str]
