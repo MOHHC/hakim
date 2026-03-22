@@ -28,7 +28,7 @@ def _llm_response(text: str, tokens: int = 50) -> LLMResponse:
     return LLMResponse(
         text=text,
         provider="gemini",
-        model="gemini-1.5-flash",
+        model="gemini-2.0-flash",
         prompt_tokens=tokens // 2,
         completion_tokens=tokens // 2,
         total_tokens=tokens,

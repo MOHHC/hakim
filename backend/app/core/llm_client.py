@@ -32,7 +32,7 @@ GEMINI_CONFIG = ProviderConfig(
     name="gemini",
     base_url="https://generativelanguage.googleapis.com/v1beta",
     api_key=settings.gemini_api_key,
-    model="gemini-1.5-flash",
+    model="gemini-2.5-flash-preview-04-17",
     # Gemini uses query-param key, not Authorization header
     auth_header="x-goog-api-key",
     auth_prefix="",
@@ -42,7 +42,7 @@ GROQ_CONFIG = ProviderConfig(
     name="groq",
     base_url="https://api.groq.com/openai/v1",
     api_key=settings.groq_api_key,
-    model="llama3-8b-8192",
+    model="llama-3.3-70b-versatile",
 )
 
 
@@ -204,6 +204,7 @@ class LLMClient:
             "messages": messages,
             "temperature": temperature,
             "max_tokens": max_tokens,
+            "frequency_penalty": 1.2,
         }
         headers = {
             "Authorization": f"Bearer {cfg.api_key}",
@@ -344,6 +345,7 @@ class LLMClient:
             "messages": messages,
             "temperature": temperature,
             "max_tokens": max_tokens,
+            "frequency_penalty": 1.2,
             "stream": True,
         }
         headers = {

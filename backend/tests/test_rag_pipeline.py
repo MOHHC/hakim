@@ -43,7 +43,7 @@ def _make_llm_response(score_text: str = "0.9") -> LLMResponse:
     return LLMResponse(
         text=score_text,
         provider="gemini",
-        model="gemini-1.5-flash",
+        model="gemini-2.0-flash",
         prompt_tokens=50,
         completion_tokens=2,
         total_tokens=52,
