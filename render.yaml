@@ -6,7 +6,7 @@ services:
     dockerContext: backend
     region: frankfurt
     plan: free
-    healthCheckPath: /health
+    healthCheckPath: /api/health
     envVars:
       - key: GEMINI_API_KEY
         sync: false
