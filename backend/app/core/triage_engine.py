@@ -98,6 +98,8 @@ _TRIAGE_PROMPT = (
     "Patient symptoms: {symptoms_text}\n\n"
     "Relevant medical context:\n{context}\n\n"
     "Classify urgency. Write possible_conditions and recommended_actions in {output_script}.\n"
+    "IMPORTANT: The values inside possible_conditions and recommended_actions arrays MUST be written in {output_script}. "
+    "If output script is Franco-Arab, use ONLY Latin letters and numbers (e.g., 'waja3 batn' not 'وجع بطن', 'ru7 3and l doctor' not 'روح عند الطبيب').\n"
     "Respond ONLY in valid JSON, no extra text:\n"
     '{{\n'
     '  "triage_level": "GREEN" or "YELLOW" or "RED",\n'

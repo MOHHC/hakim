@@ -55,7 +55,7 @@ function ConditionsList({ items, label }: { items: string[]; label: string }) {
 }
 
 export default function MessageBubble({ message }: { message: Message }) {
-  const { t } = useLanguage()
+  const { t, language } = useLanguage()
   const isUser = message.role === "user"
 
   const bubbleStyle = isUser
@@ -109,8 +109,8 @@ export default function MessageBubble({ message }: { message: Message }) {
                 marginTop: 14, display: "flex", flexDirection: "column", gap: 10,
                 borderTop: "1px solid var(--border-dim)", paddingTop: 12,
               }}>
-                <ConditionsList items={message.triageResult.possible_conditions} label={t("possibleConditions")} />
-                <ConditionsList items={message.triageResult.recommended_actions} label={t("recommendedActions")} />
+                <ConditionsList items={message.triageResult.possible_conditions} label={language === 'en' ? `${t("possibleConditions")} (حالات محتملة)` : t("possibleConditions")} />
+                <ConditionsList items={message.triageResult.recommended_actions} label={language === 'en' ? `${t("recommendedActions")} (الخطوات المنصوح فيها)` : t("recommendedActions")} />
 
                 <SourceCitation sources={message.triageResult.sources} />
 
