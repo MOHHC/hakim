@@ -2,7 +2,10 @@
 from __future__ import annotations
 
 import json
+import logging
 from typing import Annotated, Literal
+
+logger = logging.getLogger(__name__)
 
 from fastapi import APIRouter, Depends
 from fastapi.responses import StreamingResponse
@@ -124,7 +127,8 @@ async def chat(
                         event.get("disclaimer", ""), is_emergency=is_emergency
                     )
                 yield _sse(event)
-        except Exception:
+        except Exception as exc:
+            logger.exception("Triage stream failed: %s", exc)
             yield _sse(
                 {
                     "type": "error",

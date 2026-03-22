@@ -140,7 +140,7 @@ class LLMClient:
     MAX_RETRIES = 3
     RETRY_BASE_DELAY = 1.0  # seconds
 
-    def __init__(self, timeout: float = 30.0) -> None:
+    def __init__(self, timeout: float = 60.0) -> None:
         self._timeout = timeout
 
     async def generate(

@@ -27,14 +27,14 @@ function ConditionsList({ items, label, arabicLabel }: { items: string[]; label:
   return (
     <div>
       <div style={{
-        fontSize: '0.78rem', fontWeight: 700, letterSpacing: '0.04em',
+        fontSize: '0.88rem', fontWeight: 700, letterSpacing: '0.03em',
         color: 'var(--text)', marginBottom: 8,
         display: 'flex', alignItems: 'center', gap: 8,
       }}>
-        <div style={{ width: 16, height: 2, background: 'var(--gold)', borderRadius: 1 }} />
+        <div style={{ width: 18, height: 2.5, background: 'var(--gold)', borderRadius: 1 }} />
         <span>{label}</span>
         {arabicLabel && (
-          <span style={{ fontWeight: 400, fontSize: '0.72rem', color: 'var(--text-muted)', opacity: 0.8 }}>
+          <span style={{ fontWeight: 400, fontSize: '0.8rem', color: 'var(--text-muted)', opacity: 0.85 }}>
             ({arabicLabel})
           </span>
         )}
@@ -42,7 +42,7 @@ function ConditionsList({ items, label, arabicLabel }: { items: string[]; label:
       <ul style={{ margin: 0, padding: 0, listStyle: 'none', display: 'flex', flexDirection: 'column', gap: 4 }}>
         {items.map((c, i) => (
           <li key={i} style={{
-            fontSize: '0.8rem', color: 'var(--text-muted)',
+            fontSize: '0.85rem', color: 'var(--text-muted)',
             display: 'flex', alignItems: 'flex-start', gap: 8,
             padding: '3px 0',
           }}>
