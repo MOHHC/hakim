@@ -71,6 +71,11 @@ _SYSTEM_PROMPT = (
 )
 
 _TRIAGE_PROMPT = (
+    "The patient's input may be in Lebanese Arabic, Franco-Arab (Arabic written in Latin letters), or English.\n"
+    "Franco-Arab glossary: dahre/dahri=back, batn=stomach, ras=head, sadr=chest, 3ayne/3ein=eye, "
+    "rkabte=knee, ktef=shoulder, waja3/bwaja3/youja3=pain/hurts, hamma/himme=fever, "
+    "kha3be=weakness, dawkhe=dizziness, zu3er=nausea, 2i2=vomiting, sual/ko7a=cough, "
+    "dam=blood, 3am=currently doing, aam=currently, ktir=very much, mno7=fine.\n\n"
     "Patient symptoms: {symptoms_text}\n\n"
     "Relevant medical context:\n{context}\n\n"
     "Classify urgency. Respond ONLY in valid JSON, no extra text:\n"
@@ -237,7 +242,7 @@ class TriageEngine:
                 return result
 
             # Step 2: Clarification -- only when genuinely vague
-            if len(symptoms) < 2 and len(query.split()) < 4:
+            if len(symptoms) == 0 and len(query.split()) < 2:
                 logger.info("Step 2 -- vague query, requesting clarification")
                 obs.set_step("clarification")
                 clarify_resp = await self._llm.generate(
@@ -418,7 +423,7 @@ class TriageEngine:
             return
 
         # Step 2: Clarification
-        if len(symptoms) < 2 and len(query.split()) < 4:
+        if len(symptoms) == 0 and len(query.split()) < 2:
             obs.set_step("clarification")
             clarify_resp = await self._llm.generate(
                 prompt=_CLARIFICATION_PROMPT.format(
