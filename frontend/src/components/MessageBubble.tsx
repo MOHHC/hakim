@@ -1,5 +1,5 @@
 import type { Message } from '../types'
-import TriageBadge from './TriageBadge'
+import PulsingTriageBadge from './PulsingTriageBadge'
 import SourceCitation from './SourceCitation'
 import TypingIndicator from './TypingIndicator'
 import { useLanguage } from '../context/LanguageContext'
@@ -29,10 +29,19 @@ export default function MessageBubble({ message }: { message: Message }) {
               {message.content}
             </p>
 
-            {message.triageResult && !message.isStreaming && (
-              <div className="mt-3 space-y-2">
-                <TriageBadge level={message.triageResult.triage_level} />
+            {/* Badge: pulsing while streaming, static after complete */}
+            {!isUser && (message.triageResult || message.isStreaming) && (
+              <div className="mt-3">
+                <PulsingTriageBadge
+                  level={message.triageResult?.triage_level}
+                  isStreaming={!!message.isStreaming}
+                />
+              </div>
+            )}
 
+            {/* Full details: only after streaming completes */}
+            {message.triageResult && !message.isStreaming && (
+              <div className="mt-2 space-y-2">
                 {message.triageResult.possible_conditions.length > 0 && (
                   <div>
                     <p className="text-xs font-medium text-slate-500 dark:text-slate-400 mt-2">

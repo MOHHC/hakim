@@ -106,6 +106,20 @@ export function useChat(languagePreference: string = 'auto') {
           languagePreference,
           (event: SSEEvent) => {
             switch (event.type) {
+              case 'triage_classified': {
+                const partialTriageResult: TriageResult = {
+                  triage_level:
+                    (event.triage_level as TriageResult['triage_level']) || 'YELLOW',
+                  possible_conditions: event.possible_conditions ?? [],
+                  recommended_actions: event.recommended_actions ?? [],
+                  sources: [],
+                  disclaimer: '',
+                  needs_clarification: event.needs_clarification ?? false,
+                }
+                patchMessage(cid, aid, { triageResult: partialTriageResult })
+                break
+              }
+
               case 'chunk':
                 if (event.content) {
                   setConversations((prev) =>

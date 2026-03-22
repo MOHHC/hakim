@@ -39,7 +39,7 @@ export interface Conversation {
 }
 
 export interface SSEEvent {
-  type: 'start' | 'chunk' | 'complete' | 'blocked' | 'error' | 'done'
+  type: 'start' | 'chunk' | 'triage_classified' | 'complete' | 'blocked' | 'error' | 'done'
   content?: string
   triage_level?: string
   possible_conditions?: string[]

@@ -31,6 +31,7 @@ const translations = {
     toggleLang: 'EN',
     typing: '\u062d\u0643\u064a\u0645 \u0639\u0645 \u064a\u0641\u0643\u0631...',
     errorMessage: '\u0635\u0627\u0631 \u062e\u0637\u0623\u060c \u062c\u0631\u0628 \u0645\u0631\u0629 \u062a\u0627\u0646\u064a\u0629',
+    analyzing: '\u062c\u0627\u0631\u064a \u0627\u0644\u062a\u062d\u0644\u064a\u0644...',
   },
   en: {
     appName: 'Hakim',
@@ -54,6 +55,7 @@ const translations = {
     toggleLang: '\u0639',
     typing: 'Hakim is thinking...',
     errorMessage: 'Something went wrong, please try again',
+    analyzing: 'Analyzing...',
   },
 } as const
 

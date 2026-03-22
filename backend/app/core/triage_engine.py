@@ -4,6 +4,7 @@ from __future__ import annotations
 import json
 import logging
 import re
+from collections.abc import AsyncGenerator
 from dataclasses import dataclass
 from enum import Enum
 from typing import Any
@@ -280,6 +281,178 @@ class TriageEngine:
             disclaimer=disclaimer,
             total_tokens=total_tokens,
         )
+
+    async def triage_stream(
+        self,
+        query: str,
+        prior_symptoms: list | None = None,
+    ) -> AsyncGenerator[dict, None]:
+        """Stream triage pipeline, yielding SSE-ready dicts.
+
+        Event sequence:
+            triage_classified → chunk (×N) → complete
+        """
+        total_tokens = 0
+
+        # Step 1: Symptom extraction
+        symptoms = (
+            prior_symptoms
+            if prior_symptoms is not None
+            else self._proc.extract_symptoms(query)
+        )
+        symptom_labels = [
+            s.english_medical_term or s.msa_equivalent
+            for s in symptoms
+            if s.english_medical_term or s.msa_equivalent
+        ]
+        symptoms_text = ", ".join(symptom_labels) if symptom_labels else query
+
+        # Safety refusal (out-of-scope)
+        if _REFUSAL_RE.search(query):
+            refusal = (
+                "Sorry, I cannot help with this case. "
+                "For infants, pregnancy complications, or lab results, "
+                "please consult a doctor directly."
+            )
+            yield {
+                "type": "triage_classified",
+                "triage_level": "YELLOW",
+                "possible_conditions": [],
+                "recommended_actions": ["Consult a doctor immediately"],
+                "needs_clarification": False,
+            }
+            for word in refusal.split():
+                yield {"type": "chunk", "content": word + " "}
+            yield {
+                "type": "complete",
+                "triage_level": "YELLOW",
+                "possible_conditions": [],
+                "recommended_actions": ["Consult a doctor immediately"],
+                "sources": [],
+                "disclaimer": _DISCLAIMER,
+                "needs_clarification": False,
+                "follow_up_question": None,
+            }
+            return
+
+        # Emergency fast-path → instant RED
+        if _EMERGENCY_RE.search(query):
+            yield {
+                "type": "triage_classified",
+                "triage_level": "RED",
+                "possible_conditions": ["emergency"],
+                "recommended_actions": ["call ambulance immediately — 140", "go to ER now"],
+                "needs_clarification": False,
+            }
+            async for chunk in self._llm.generate_stream(
+                prompt=_RESPONSE_PROMPT.format(
+                    symptoms_text=symptoms_text,
+                    triage_level="RED",
+                    conditions="possible emergency",
+                    actions="call ambulance immediately — 140",
+                ),
+                system_prompt=_SYSTEM_PROMPT,
+                temperature=0.1,
+                max_tokens=512,
+            ):
+                yield {"type": "chunk", "content": chunk}
+            yield {
+                "type": "complete",
+                "triage_level": "RED",
+                "possible_conditions": ["emergency"],
+                "recommended_actions": ["call ambulance immediately — 140", "go to ER now"],
+                "sources": [],
+                "disclaimer": _EMERGENCY_DISCLAIMER,
+                "needs_clarification": False,
+                "follow_up_question": None,
+            }
+            return
+
+        # Step 2: Clarification
+        if len(symptoms) < 2 and len(query.split()) < 4:
+            clarify_resp = await self._llm.generate(
+                prompt=_CLARIFICATION_PROMPT.format(
+                    query=query,
+                    symptoms_text=symptoms_text if symptom_labels else "nothing specific",
+                ),
+                system_prompt=_SYSTEM_PROMPT,
+                temperature=0.4,
+                max_tokens=256,
+            )
+            q = clarify_resp.text.strip()
+            yield {
+                "type": "triage_classified",
+                "triage_level": "GREEN",
+                "possible_conditions": [],
+                "recommended_actions": [],
+                "needs_clarification": True,
+            }
+            for word in q.split():
+                yield {"type": "chunk", "content": word + " "}
+            yield {
+                "type": "complete",
+                "triage_level": "GREEN",
+                "possible_conditions": [],
+                "recommended_actions": [],
+                "sources": [],
+                "disclaimer": _DISCLAIMER,
+                "needs_clarification": True,
+                "follow_up_question": q,
+            }
+            return
+
+        # Step 3: Knowledge retrieval
+        retrieval_results: list[RetrievalResult] = []
+        if self._rag is not None:
+            retrieval_results = await self._rag.retrieve(query, symptoms=symptoms)
+        context = self._format_context(retrieval_results)
+
+        # Step 4: Classification
+        classify_resp = await self._llm.generate(
+            prompt=_TRIAGE_PROMPT.format(symptoms_text=symptoms_text, context=context),
+            system_prompt=_SYSTEM_PROMPT,
+            temperature=0.1,
+            max_tokens=512,
+        )
+        total_tokens += classify_resp.total_tokens
+        triage_level, conditions, actions = self._parse_triage_json(classify_resp.text)
+
+        is_emergency = triage_level == TriageLevel.RED
+        disclaimer = _EMERGENCY_DISCLAIMER if is_emergency else _DISCLAIMER
+
+        # Emit classification before text starts streaming
+        yield {
+            "type": "triage_classified",
+            "triage_level": triage_level.value,
+            "possible_conditions": conditions,
+            "recommended_actions": actions,
+            "needs_clarification": False,
+        }
+
+        # Step 5: Stream response generation
+        async for chunk in self._llm.generate_stream(
+            prompt=_RESPONSE_PROMPT.format(
+                symptoms_text=symptoms_text,
+                triage_level=triage_level.value,
+                conditions=", ".join(conditions) if conditions else "unspecified",
+                actions=", ".join(actions) if actions else "follow up with doctor",
+            ),
+            system_prompt=_SYSTEM_PROMPT,
+            temperature=0.4,
+            max_tokens=768,
+        ):
+            yield {"type": "chunk", "content": chunk}
+
+        yield {
+            "type": "complete",
+            "triage_level": triage_level.value,
+            "possible_conditions": conditions,
+            "recommended_actions": actions,
+            "sources": [r.to_dict() for r in retrieval_results],
+            "disclaimer": disclaimer,
+            "needs_clarification": False,
+            "follow_up_question": None,
+        }
 
     # ------------------------------------------------------------------
     # Private helpers

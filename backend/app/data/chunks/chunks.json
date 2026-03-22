@@ -1,0 +1,45 @@
+{
+  "metadata": {
+    "source_dir": "app\\data\\medical_sources",
+    "files_processed": 1,
+    "total_chunks": 3,
+    "chunk_tokens": 500,
+    "overlap_tokens": 50,
+    "encoding": "cl100k_base"
+  },
+  "chunks": [
+    {
+      "chunk_id": "cardiology_basics_0_0",
+      "source_name": "cardiology_basics.md",
+      "page_number": 0,
+      "section_title": "Cardiovascular Emergencies — Clinical Guide",
+      "medical_category": "cardiovascular",
+      "text": "# Cardiovascular Emergencies — Clinical Guide\n\n## Chest Pain Assessment\n\nChest pain is one of the most common presenting complaints in emergency medicine.\nIt accounts for approximately 5-8% of all emergency department visits worldwide.\nThe differential diagnosis is broad and includes both life-threatening and benign conditions.\n\nKey life-threatening causes include:\n- Acute myocardial infarction (AMI)\n- Pulmonary embolism (PE)\n- Aortic dissection\n- Tension pneumothorax\n- Cardiac tamponade\n\n## History Taking — SOCRATES Framework\n\nA structured history is essential for accurate risk stratification.\n\n**Site:** Where exactly is the pain located? Is it central, left-sided, or right-sided?\n\n**Onset:** Was it sudden or gradual? What was the patient doing at the time?\n\n**Character:** Describe the pain — crushing, sharp, burning, tearing, pressure-like?\n\n**Radiation:** Does it radiate to the arm, jaw, back, or shoulder?\n\n**Associated symptoms:** Shortness of breath, sweating, nausea, palpitations, syncope?\n\n**Timing:** Is it constant or intermittent? How long has it been present?\n\n**Exacerbating/relieving factors:** Does it worsen with exertion, breathing, or movement? Does rest or GTN relieve it?\n\n**Severity:** Rate the pain on a scale of 0-10.\n\n## Physical Examination\n\nVital signs must be obtained within 2 minutes of presentation.\nMeasure blood pressure in both arms — a difference >20 mmHg suggests aortic dissection.\n\nAuscultate for:\n- Muffled heart sounds (tamponade)\n- New murmur (valve pathology or VSD post-MI)\n- Bilateral crackles (pulmonary oedema in LVF)\n- Absent breath sounds (pneumothorax)\n\nAssess peripheral perfusion: capillary refill time, skin colour, temperature, and peripheral pulses.\n\n## Investigations\n\n### ECG\nA 12-lead ECG must be performed within 10 minutes of presentation.\nLook for:\n- ST elevation ≥1mm in two contiguous leads → STEMI (activate cath lab immediately)\n- ST depression / T-wave inversion → NSTEMI / unstable angina\n- New LBBB → treat as STEMI equivalent\n- Sinus tachycardia + right heart strain pattern (S1Q3T3) → consider PE",
+      "token_count": 499,
+      "char_start": 0,
+      "char_end": 2080
+    },
+    {
+      "chunk_id": "cardiology_basics_0_1",
+      "source_name": "cardiology_basics.md",
+      "page_number": 0,
+      "section_title": "ECG",
+      "medical_category": "cardiovascular",
+      "text": "/ T-wave inversion → NSTEMI / unstable angina\n- New LBBB → treat as STEMI equivalent\n- Sinus tachycardia + right heart strain pattern (S1Q3T3) → consider PE\n\n### Biomarkers\n- Troponin I or T (high-sensitivity): draw on arrival and at 3 hours\n- A rise and/or fall pattern with at least one value above the 99th percentile confirms myocardial injury\n\n### Imaging\n- Chest X-ray: widened mediastinum (dissection), cardiomegaly, pulmonary oedema, pneumothorax\n- CT pulmonary angiography: gold standard for PE\n- CT aortography: gold standard for aortic dissection\n- Bedside echo: useful for tamponade, wall motion abnormalities, RV dilatation\n\n## Acute Management\n\n### STEMI Protocol\n1. Dual antiplatelet therapy: aspirin 300mg + ticagrelor 180mg (or clopidogrel 600mg)\n2. Anticoagulation: unfractionated heparin or enoxaparin\n3. Primary PCI within 90 minutes of first medical contact (door-to-balloon time)\n4. If PCI unavailable within 120 minutes: fibrinolysis with tenecteplase\n\n### NSTEMI / Unstable Angina\n1. Risk stratify using GRACE or TIMI score\n2. Antiplatelet + anticoagulation therapy\n3. Early invasive strategy (within 24-72h) for high-risk patients\n4. Medical management for low-risk patients\n\n## Triage Classification\n\n**RED (Immediate):** Active STEMI, haemodynamic instability, suspected aortic dissection, cardiac arrest\n\n**YELLOW (Urgent):** Suspected NSTEMI, new-onset chest pain with risk factors, troponin elevation\n\n**GREEN (Semi-urgent):** Atypical chest pain, low GRACE score, normal ECG and initial troponin\n\n## Common Presentations in Arabic-Speaking Patients\n\nPatients may describe chest pain using colloquial terms:\n- وجع بالصدر (waja3 bil sadr) — chest pain\n- ضغط على الصدر (daght 3al sadr) — pressure on chest\n- حرقة (2ar2a",
+      "token_count": 500,
+      "char_start": 1921,
+      "char_end": 3669
+    },
+    {
+      "chunk_id": "cardiology_basics_0_2",
+      "source_name": "cardiology_basics.md",
+      "page_number": 0,
+      "section_title": "Common Presentations in Arabic-Speaking Patients",
+      "medical_category": "cardiovascular",
+      "text": "صدر (waja3 bil sadr) — chest pain\n- ضغط على الصدر (daght 3al sadr) — pressure on chest\n- حرقة (2ar2a / 7ar2a) — burning sensation (often confused with GERD)\n- قلبي بيدق (2albi bidi2) — my heart is pounding (palpitations)\n- ما2dar 2itmashsha — cannot walk (exertional chest pain)",
+      "token_count": 113,
+      "char_start": 3569,
+      "char_end": 3848
+    }
+  ]
+}

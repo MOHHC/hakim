@@ -1,8 +1,10 @@
 """LLM client with Gemini primary and Groq fallback."""
 
 import asyncio
+import json
 import logging
 import time
+from collections.abc import AsyncGenerator
 from dataclasses import dataclass, field
 from typing import Any
 
@@ -212,6 +214,128 @@ class LLMClient:
             total_tokens=usage.get("total_tokens", 0),
             latency_ms=0.0,
         )
+
+    # ------------------------------------------------------------------
+    # Streaming API
+    # ------------------------------------------------------------------
+
+    async def generate_stream(
+        self,
+        prompt: str,
+        system_prompt: str = "",
+        temperature: float = 0.3,
+        max_tokens: int = 1024,
+    ) -> AsyncGenerator[str, None]:
+        """Yield response tokens.  Gemini → Groq streaming → non-streaming fallback."""
+        for cfg, stream_method in [
+            (GEMINI_CONFIG, self._stream_gemini_tokens),
+            (GROQ_CONFIG, self._stream_groq_tokens),
+        ]:
+            if not cfg.api_key:
+                continue
+            yielded = False
+            try:
+                async for chunk in stream_method(cfg, prompt, system_prompt, temperature, max_tokens):
+                    yield chunk
+                    yielded = True
+                return  # provider completed the stream successfully
+            except Exception as exc:
+                logger.warning("%s streaming failed: %s", cfg.name, exc)
+                if yielded:
+                    # Already sent partial output; can't cleanly switch providers
+                    return
+
+        # All streaming providers failed — fall back to a single non-streaming chunk
+        try:
+            resp = await self.generate(prompt, system_prompt, temperature, max_tokens)
+            yield resp.text
+        except Exception as exc:
+            raise LLMError(f"All providers failed: {exc}") from exc
+
+    async def _stream_gemini_tokens(
+        self,
+        cfg: ProviderConfig,
+        prompt: str,
+        system_prompt: str,
+        temperature: float,
+        max_tokens: int,
+    ) -> AsyncGenerator[str, None]:
+        """Stream tokens from Gemini using streamGenerateContent + alt=sse."""
+        url = f"{cfg.base_url}/models/{cfg.model}:streamGenerateContent"
+        contents: list[dict[str, Any]] = [{"role": "user", "parts": [{"text": prompt}]}]
+        body: dict[str, Any] = {
+            "contents": contents,
+            "generationConfig": {
+                "temperature": temperature,
+                "maxOutputTokens": max_tokens,
+            },
+        }
+        if system_prompt:
+            body["systemInstruction"] = {"parts": [{"text": system_prompt}]}
+        headers = {"x-goog-api-key": cfg.api_key, "Content-Type": "application/json"}
+
+        async with httpx.AsyncClient(timeout=self._timeout) as client:
+            async with client.stream(
+                "POST", url, json=body, headers=headers, params={"alt": "sse"}
+            ) as resp:
+                resp.raise_for_status()
+                async for line in resp.aiter_lines():
+                    if not line.startswith("data: "):
+                        continue
+                    data_str = line[6:].strip()
+                    if not data_str or data_str == "[DONE]":
+                        continue
+                    try:
+                        data = json.loads(data_str)
+                        text = data["candidates"][0]["content"]["parts"][0]["text"]
+                        if text:
+                            yield text
+                    except (KeyError, IndexError, json.JSONDecodeError):
+                        continue
+
+    async def _stream_groq_tokens(
+        self,
+        cfg: ProviderConfig,
+        prompt: str,
+        system_prompt: str,
+        temperature: float,
+        max_tokens: int,
+    ) -> AsyncGenerator[str, None]:
+        """Stream tokens from Groq (OpenAI-compatible SSE)."""
+        url = f"{cfg.base_url}/chat/completions"
+        messages: list[dict[str, str]] = []
+        if system_prompt:
+            messages.append({"role": "system", "content": system_prompt})
+        messages.append({"role": "user", "content": prompt})
+        body: dict[str, Any] = {
+            "model": cfg.model,
+            "messages": messages,
+            "temperature": temperature,
+            "max_tokens": max_tokens,
+            "stream": True,
+        }
+        headers = {
+            "Authorization": f"Bearer {cfg.api_key}",
+            "Content-Type": "application/json",
+            **cfg.extra_headers,
+        }
+
+        async with httpx.AsyncClient(timeout=self._timeout) as client:
+            async with client.stream("POST", url, json=body, headers=headers) as resp:
+                resp.raise_for_status()
+                async for line in resp.aiter_lines():
+                    if not line.startswith("data: "):
+                        continue
+                    data_str = line[6:].strip()
+                    if data_str == "[DONE]":
+                        break
+                    try:
+                        data = json.loads(data_str)
+                        delta = data["choices"][0]["delta"].get("content") or ""
+                        if delta:
+                            yield delta
+                    except (KeyError, IndexError, json.JSONDecodeError):
+                        continue
 
     def _log_response(self, response: LLMResponse) -> None:
         logger.info(

@@ -43,9 +43,36 @@ def _make_triage_result(
     )
 
 
+async def _stream_from_result(result: TriageResult):
+    """Async generator that mimics TriageEngine.triage_stream() output."""
+    yield {
+        "type": "triage_classified",
+        "triage_level": result.triage_level.value,
+        "possible_conditions": result.possible_conditions,
+        "recommended_actions": result.recommended_actions,
+        "needs_clarification": result.needs_clarification,
+    }
+    words = result.response_text.split()
+    for i, word in enumerate(words):
+        yield {"type": "chunk", "content": word + (" " if i < len(words) - 1 else "")}
+    yield {
+        "type": "complete",
+        "triage_level": result.triage_level.value,
+        "possible_conditions": result.possible_conditions,
+        "recommended_actions": result.recommended_actions,
+        "sources": result.sources,
+        "disclaimer": result.disclaimer,
+        "needs_clarification": result.needs_clarification,
+        "follow_up_question": result.clarification_question,
+    }
+
+
 def _mock_engine(result: TriageResult) -> TriageEngine:
     engine = MagicMock(spec=TriageEngine)
     engine.triage = AsyncMock(return_value=result)
+    engine.triage_stream = MagicMock(
+        side_effect=lambda *a, **kw: _stream_from_result(result)
+    )
     return engine
 
 

@@ -2,12 +2,15 @@ import type { SSEEvent } from '../types'
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000'
 
-export async function streamChat(
+const MAX_RETRIES = 3
+
+async function _doStream(
   message: string,
   conversationHistory: Array<{ role: string; content: string }>,
   languagePreference: string,
   onEvent: (event: SSEEvent) => void,
-  signal?: AbortSignal,
+  signal: AbortSignal | undefined,
+  onContent: () => void,
 ): Promise<void> {
   const response = await fetch(`${API_URL}/api/chat`, {
     method: 'POST',
@@ -25,8 +28,11 @@ export async function streamChat(
       onEvent({ type: 'error', message: 'Rate limit exceeded. Please wait a moment.' })
       return
     }
-    onEvent({ type: 'error', message: 'Request failed.' })
-    return
+    if (response.status >= 400 && response.status < 500) {
+      onEvent({ type: 'error', message: 'Request failed.' })
+      return
+    }
+    throw new Error(`HTTP ${response.status}`)
   }
 
   const reader = response.body!.getReader()
@@ -49,10 +55,43 @@ export async function streamChat(
         return
       }
       try {
-        onEvent(JSON.parse(data))
+        const event = JSON.parse(data) as SSEEvent
+        if (event.type === 'chunk') onContent()
+        onEvent(event)
       } catch {
         // skip malformed frames
       }
+    }
+  }
+}
+
+export async function streamChat(
+  message: string,
+  conversationHistory: Array<{ role: string; content: string }>,
+  languagePreference: string,
+  onEvent: (event: SSEEvent) => void,
+  signal?: AbortSignal,
+): Promise<void> {
+  let hadContent = false
+
+  for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+    try {
+      await _doStream(
+        message,
+        conversationHistory,
+        languagePreference,
+        onEvent,
+        signal,
+        () => { hadContent = true },
+      )
+      return
+    } catch (err) {
+      if (signal?.aborted) return
+      if (hadContent || attempt >= MAX_RETRIES) {
+        onEvent({ type: 'error', message: 'Connection error. Please try again.' })
+        return
+      }
+      await new Promise((r) => setTimeout(r, 1000 * 2 ** attempt))
     }
   }
 }

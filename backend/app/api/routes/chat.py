@@ -1,7 +1,6 @@
 """POST /api/chat — conversational triage with SSE streaming."""
 from __future__ import annotations
 
-import asyncio
 import json
 from typing import Annotated, Literal
 
@@ -111,9 +110,16 @@ async def chat(
             yield "data: [DONE]\n\n"
             return
 
-        # Run full triage pipeline
+        # Run streaming triage pipeline — yields triage_classified → chunk×N → complete
         try:
-            result = await engine.triage(request.message)
+            async for event in engine.triage_stream(request.message):
+                if event["type"] == "complete":
+                    # Apply guardrail disclaimer post-processing to the complete event
+                    is_emergency = event.get("triage_level") == "RED"
+                    event["disclaimer"] = guardrails.ensure_disclaimer(
+                        event.get("disclaimer", ""), is_emergency=is_emergency
+                    )
+                yield _sse(event)
         except Exception:
             yield _sse(
                 {
@@ -121,36 +127,6 @@ async def chat(
                     "message": "Triage processing failed. Please try again.",
                 }
             )
-            yield "data: [DONE]\n\n"
-            return
-
-        # Post-process: sanitize output, ensure disclaimer
-        is_emergency = result.triage_level.value == "RED"
-        safe_text = guardrails.sanitize_response(result.response_text)
-        safe_text = guardrails.ensure_disclaimer(safe_text, is_emergency=is_emergency)
-
-        # Stream response text word by word for real-time feel
-        words = safe_text.split(" ")
-        for i, word in enumerate(words):
-            chunk = word + (" " if i < len(words) - 1 else "")
-            yield _sse({"type": "chunk", "content": chunk})
-            await asyncio.sleep(0.015)
-
-        # Final event — structured metadata
-        yield _sse(
-            {
-                "type": "complete",
-                "triage_level": result.triage_level.value,
-                "possible_conditions": result.possible_conditions,
-                "recommended_actions": result.recommended_actions,
-                "sources": result.sources,
-                "disclaimer": guardrails.ensure_disclaimer(
-                    result.disclaimer, is_emergency=is_emergency
-                ),
-                "follow_up_question": result.clarification_question,
-                "needs_clarification": result.needs_clarification,
-            }
-        )
         yield "data: [DONE]\n\n"
 
     return StreamingResponse(
