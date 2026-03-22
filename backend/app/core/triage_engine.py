@@ -11,6 +11,7 @@ from typing import Any
 
 from app.core.arabic_processor import ArabicProcessor, LexiconMatch
 from app.core.llm_client import LLMClient
+from app.core import observability as obs
 from app.core.rag_pipeline import RAGPipeline, RetrievalResult
 
 logger = logging.getLogger(__name__)
@@ -178,109 +179,140 @@ class TriageEngine:
         """Run the full 5-step triage pipeline."""
         total_tokens = 0
 
-        # Step 1: Symptom extraction
-        symptoms = (
-            prior_symptoms
-            if prior_symptoms is not None
-            else self._proc.extract_symptoms(query)
+        trace = obs.start_trace(
+            name="triage",
+            metadata={"query_length": len(query), "endpoint": "/api/triage"},
         )
-        symptom_labels = [
-            s.english_medical_term or s.msa_equivalent
-            for s in symptoms
-            if s.english_medical_term or s.msa_equivalent
-        ]
-        symptoms_text = ", ".join(symptom_labels) if symptom_labels else query
-        logger.info("Step 1 -- extracted %d symptoms: %s", len(symptoms), symptom_labels)
 
-        # Safety gate: refuse out-of-scope cases immediately
-        if _REFUSAL_RE.search(query):
-            logger.info("Safety refusal triggered for query: %r", query[:60])
-            return TriageResult(
-                triage_level=TriageLevel.YELLOW,
-                response_text=(
-                    "Sorry, I cannot help with this case. "
-                    "For infants, pregnancy complications, or lab results, "
-                    "please consult a doctor directly."
-                ),
-                possible_conditions=[],
-                recommended_actions=["Consult a doctor immediately"],
-                sources=[],
-                disclaimer=_DISCLAIMER,
+        try:
+            # Step 1: Symptom extraction
+            symptoms = (
+                prior_symptoms
+                if prior_symptoms is not None
+                else self._proc.extract_symptoms(query)
             )
+            symptom_labels = [
+                s.english_medical_term or s.msa_equivalent
+                for s in symptoms
+                if s.english_medical_term or s.msa_equivalent
+            ]
+            symptoms_text = ", ".join(symptom_labels) if symptom_labels else query
+            logger.info("Step 1 -- extracted %d symptoms: %s", len(symptoms), symptom_labels)
 
-        # Emergency fast-path: skip Steps 2-4 -> instant RED
-        if _EMERGENCY_RE.search(query):
-            logger.info("Step 1b -- emergency detected, fast-path RED")
-            return await self._emergency_response(symptoms_text, total_tokens)
+            # Safety gate: refuse out-of-scope cases immediately
+            if _REFUSAL_RE.search(query):
+                logger.info("Safety refusal triggered for query: %r", query[:60])
+                result = TriageResult(
+                    triage_level=TriageLevel.YELLOW,
+                    response_text=(
+                        "Sorry, I cannot help with this case. "
+                        "For infants, pregnancy complications, or lab results, "
+                        "please consult a doctor directly."
+                    ),
+                    possible_conditions=[],
+                    recommended_actions=["Consult a doctor immediately"],
+                    sources=[],
+                    disclaimer=_DISCLAIMER,
+                )
+                obs.end_trace(trace, output={"triage_level": "YELLOW", "refusal": True})
+                return result
 
-        # Step 2: Clarification -- only when genuinely vague
-        if len(symptoms) < 2 and len(query.split()) < 4:
-            logger.info("Step 2 -- vague query, requesting clarification")
-            clarify_resp = await self._llm.generate(
-                prompt=_CLARIFICATION_PROMPT.format(
-                    query=query,
-                    symptoms_text=symptoms_text if symptom_labels else "nothing specific",
+            # Emergency fast-path: skip Steps 2-4 -> instant RED
+            if _EMERGENCY_RE.search(query):
+                logger.info("Step 1b -- emergency detected, fast-path RED")
+                obs.set_step("emergency-response")
+                result = await self._emergency_response(symptoms_text, total_tokens)
+                obs.end_trace(trace, output={
+                    "triage_level": "RED",
+                    "emergency_fast_path": True,
+                    "total_tokens": result.total_tokens,
+                })
+                return result
+
+            # Step 2: Clarification -- only when genuinely vague
+            if len(symptoms) < 2 and len(query.split()) < 4:
+                logger.info("Step 2 -- vague query, requesting clarification")
+                obs.set_step("clarification")
+                clarify_resp = await self._llm.generate(
+                    prompt=_CLARIFICATION_PROMPT.format(
+                        query=query,
+                        symptoms_text=symptoms_text if symptom_labels else "nothing specific",
+                    ),
+                    system_prompt=_SYSTEM_PROMPT,
+                    temperature=0.4,
+                    max_tokens=256,
+                )
+                total_tokens += clarify_resp.total_tokens
+                q = clarify_resp.text.strip()
+                result = TriageResult(
+                    triage_level=TriageLevel.GREEN,
+                    response_text=q,
+                    possible_conditions=[],
+                    recommended_actions=[],
+                    sources=[],
+                    disclaimer=_DISCLAIMER,
+                    needs_clarification=True,
+                    clarification_question=q,
+                    total_tokens=total_tokens,
+                )
+                obs.end_trace(trace, output={"triage_level": "GREEN", "needs_clarification": True})
+                return result
+
+            # Step 3: Knowledge retrieval
+            retrieval_results: list[RetrievalResult] = []
+            if self._rag is not None:
+                retrieval_results = await self._rag.retrieve(query, symptoms=symptoms)
+                logger.info("Step 3 -- retrieved %d chunks", len(retrieval_results))
+            context = self._format_context(retrieval_results)
+
+            # Step 4: Triage classification
+            obs.set_step("classification")
+            classify_resp = await self._llm.generate(
+                prompt=_TRIAGE_PROMPT.format(symptoms_text=symptoms_text, context=context),
+                system_prompt=_SYSTEM_PROMPT,
+                temperature=0.1,
+                max_tokens=512,
+            )
+            total_tokens += classify_resp.total_tokens
+            triage_level, conditions, actions = self._parse_triage_json(classify_resp.text)
+            logger.info("Step 4 -- level=%s | conditions=%s", triage_level, conditions)
+
+            # Step 5: Response generation in Lebanese Arabic
+            obs.set_step("response")
+            response_resp = await self._llm.generate(
+                prompt=_RESPONSE_PROMPT.format(
+                    symptoms_text=symptoms_text,
+                    triage_level=triage_level.value,
+                    conditions=", ".join(conditions) if conditions else "unspecified",
+                    actions=", ".join(actions) if actions else "follow up with doctor",
                 ),
                 system_prompt=_SYSTEM_PROMPT,
                 temperature=0.4,
-                max_tokens=256,
+                max_tokens=768,
             )
-            total_tokens += clarify_resp.total_tokens
-            q = clarify_resp.text.strip()
-            return TriageResult(
-                triage_level=TriageLevel.GREEN,
-                response_text=q,
-                possible_conditions=[],
-                recommended_actions=[],
-                sources=[],
-                disclaimer=_DISCLAIMER,
-                needs_clarification=True,
-                clarification_question=q,
+            total_tokens += response_resp.total_tokens
+
+            disclaimer = _EMERGENCY_DISCLAIMER if triage_level == TriageLevel.RED else _DISCLAIMER
+            result = TriageResult(
+                triage_level=triage_level,
+                response_text=response_resp.text.strip(),
+                possible_conditions=conditions,
+                recommended_actions=actions,
+                sources=[r.to_dict() for r in retrieval_results],
+                disclaimer=disclaimer,
                 total_tokens=total_tokens,
             )
+            obs.end_trace(trace, output={
+                "triage_level": triage_level.value,
+                "possible_conditions": conditions,
+                "total_tokens": total_tokens,
+                "sources_count": len(retrieval_results),
+            })
+            return result
 
-        # Step 3: Knowledge retrieval
-        retrieval_results: list[RetrievalResult] = []
-        if self._rag is not None:
-            retrieval_results = await self._rag.retrieve(query, symptoms=symptoms)
-            logger.info("Step 3 -- retrieved %d chunks", len(retrieval_results))
-        context = self._format_context(retrieval_results)
-
-        # Step 4: Triage classification
-        classify_resp = await self._llm.generate(
-            prompt=_TRIAGE_PROMPT.format(symptoms_text=symptoms_text, context=context),
-            system_prompt=_SYSTEM_PROMPT,
-            temperature=0.1,
-            max_tokens=512,
-        )
-        total_tokens += classify_resp.total_tokens
-        triage_level, conditions, actions = self._parse_triage_json(classify_resp.text)
-        logger.info("Step 4 -- level=%s | conditions=%s", triage_level, conditions)
-
-        # Step 5: Response generation in Lebanese Arabic
-        response_resp = await self._llm.generate(
-            prompt=_RESPONSE_PROMPT.format(
-                symptoms_text=symptoms_text,
-                triage_level=triage_level.value,
-                conditions=", ".join(conditions) if conditions else "unspecified",
-                actions=", ".join(actions) if actions else "follow up with doctor",
-            ),
-            system_prompt=_SYSTEM_PROMPT,
-            temperature=0.4,
-            max_tokens=768,
-        )
-        total_tokens += response_resp.total_tokens
-
-        disclaimer = _EMERGENCY_DISCLAIMER if triage_level == TriageLevel.RED else _DISCLAIMER
-        return TriageResult(
-            triage_level=triage_level,
-            response_text=response_resp.text.strip(),
-            possible_conditions=conditions,
-            recommended_actions=actions,
-            sources=[r.to_dict() for r in retrieval_results],
-            disclaimer=disclaimer,
-            total_tokens=total_tokens,
-        )
+        except Exception as exc:
+            obs.end_trace(trace, error=str(exc))
+            raise
 
     async def triage_stream(
         self,
@@ -293,6 +325,11 @@ class TriageEngine:
             triage_classified → chunk (×N) → complete
         """
         total_tokens = 0
+
+        trace = obs.start_trace(
+            name="triage-stream",
+            metadata={"query_length": len(query), "endpoint": "/api/chat"},
+        )
 
         # Step 1: Symptom extraction
         symptoms = (
@@ -323,7 +360,7 @@ class TriageEngine:
             }
             for word in refusal.split():
                 yield {"type": "chunk", "content": word + " "}
-            yield {
+            complete_event = {
                 "type": "complete",
                 "triage_level": "YELLOW",
                 "possible_conditions": [],
@@ -333,10 +370,13 @@ class TriageEngine:
                 "needs_clarification": False,
                 "follow_up_question": None,
             }
+            obs.end_trace(trace, output={"triage_level": "YELLOW", "refusal": True})
+            yield complete_event
             return
 
         # Emergency fast-path → instant RED
         if _EMERGENCY_RE.search(query):
+            obs.set_step("emergency-response")
             yield {
                 "type": "triage_classified",
                 "triage_level": "RED",
@@ -356,7 +396,7 @@ class TriageEngine:
                 max_tokens=512,
             ):
                 yield {"type": "chunk", "content": chunk}
-            yield {
+            complete_event = {
                 "type": "complete",
                 "triage_level": "RED",
                 "possible_conditions": ["emergency"],
@@ -366,10 +406,13 @@ class TriageEngine:
                 "needs_clarification": False,
                 "follow_up_question": None,
             }
+            obs.end_trace(trace, output={"triage_level": "RED", "emergency_fast_path": True})
+            yield complete_event
             return
 
         # Step 2: Clarification
         if len(symptoms) < 2 and len(query.split()) < 4:
+            obs.set_step("clarification")
             clarify_resp = await self._llm.generate(
                 prompt=_CLARIFICATION_PROMPT.format(
                     query=query,
@@ -389,7 +432,7 @@ class TriageEngine:
             }
             for word in q.split():
                 yield {"type": "chunk", "content": word + " "}
-            yield {
+            complete_event = {
                 "type": "complete",
                 "triage_level": "GREEN",
                 "possible_conditions": [],
@@ -399,6 +442,8 @@ class TriageEngine:
                 "needs_clarification": True,
                 "follow_up_question": q,
             }
+            obs.end_trace(trace, output={"triage_level": "GREEN", "needs_clarification": True})
+            yield complete_event
             return
 
         # Step 3: Knowledge retrieval
@@ -408,6 +453,7 @@ class TriageEngine:
         context = self._format_context(retrieval_results)
 
         # Step 4: Classification
+        obs.set_step("classification")
         classify_resp = await self._llm.generate(
             prompt=_TRIAGE_PROMPT.format(symptoms_text=symptoms_text, context=context),
             system_prompt=_SYSTEM_PROMPT,
@@ -430,6 +476,7 @@ class TriageEngine:
         }
 
         # Step 5: Stream response generation
+        obs.set_step("stream-response")
         async for chunk in self._llm.generate_stream(
             prompt=_RESPONSE_PROMPT.format(
                 symptoms_text=symptoms_text,
@@ -443,7 +490,7 @@ class TriageEngine:
         ):
             yield {"type": "chunk", "content": chunk}
 
-        yield {
+        complete_event = {
             "type": "complete",
             "triage_level": triage_level.value,
             "possible_conditions": conditions,
@@ -453,6 +500,13 @@ class TriageEngine:
             "needs_clarification": False,
             "follow_up_question": None,
         }
+        obs.end_trace(trace, output={
+            "triage_level": triage_level.value,
+            "possible_conditions": conditions,
+            "total_tokens": total_tokens,
+            "sources_count": len(retrieval_results),
+        })
+        yield complete_event
 
     # ------------------------------------------------------------------
     # Private helpers

@@ -1,4 +1,6 @@
 """FastAPI application entry point."""
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -8,7 +10,17 @@ from app.api.routes.health import router as health_router
 from app.api.routes.triage import router as triage_router
 from app.config import settings
 
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):  # noqa: ARG001
+    yield
+    # Drain Langfuse's async event queue before the process exits
+    from app.core.observability import flush  # noqa: PLC0415
+    flush()
+
+
 app = FastAPI(
+    lifespan=lifespan,
     title=settings.app_name,
     version="0.1.0",
     description=(

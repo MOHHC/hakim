@@ -11,6 +11,9 @@ services:
     volumes:
       - ./backend:/app
     command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+    depends_on:
+      langfuse:
+        condition: service_started
 
   frontend:
     build:
@@ -23,3 +26,44 @@ services:
       - ./frontend:/app
       - /app/node_modules
     command: npm run dev -- --host 0.0.0.0 --port 3000
+
+  # ---------------------------------------------------------------------------
+  # Langfuse observability stack (open-source LLM tracing)
+  # Dashboard: http://localhost:3001
+  # First launch: sign up at http://localhost:3001 to create an account,
+  # then create a project to get LANGFUSE_PUBLIC_KEY + LANGFUSE_SECRET_KEY.
+  # ---------------------------------------------------------------------------
+  langfuse:
+    image: langfuse/langfuse:2
+    depends_on:
+      langfuse-db:
+        condition: service_healthy
+    ports:
+      - "3001:3000"
+    environment:
+      DATABASE_URL: postgresql://langfuse:langfuse@langfuse-db:5432/langfuse
+      NEXTAUTH_URL: http://localhost:3001
+      # Change these secrets before any non-local deployment
+      NEXTAUTH_SECRET: "hakim-langfuse-nextauth-secret-change-in-prod"
+      SALT: "hakim-langfuse-salt-change-in-prod"
+      TELEMETRY_ENABLED: "false"
+      LANGFUSE_ENABLE_EXPERIMENTAL_FEATURES: "true"
+    restart: unless-stopped
+
+  langfuse-db:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_USER: langfuse
+      POSTGRES_PASSWORD: langfuse
+      POSTGRES_DB: langfuse
+    volumes:
+      - langfuse_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U langfuse -d langfuse"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
+volumes:
+  langfuse_pgdata:

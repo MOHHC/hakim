@@ -11,6 +11,7 @@ from typing import Any
 import httpx
 
 from app.config import settings
+from app.core import observability as obs
 
 logger = logging.getLogger(__name__)
 
@@ -127,6 +128,19 @@ class LLMClient:
         response.latency_ms = latency_ms
 
         self._log_response(response)
+        obs.log_generation(
+            provider=cfg.name,
+            model=response.model,
+            system_prompt=system_prompt,
+            prompt=prompt,
+            response=response.text,
+            prompt_tokens=response.prompt_tokens,
+            completion_tokens=response.completion_tokens,
+            total_tokens=response.total_tokens,
+            latency_ms=latency_ms,
+            temperature=temperature,
+            max_tokens=max_tokens,
+        )
         return response
 
     async def _call_gemini(
@@ -234,18 +248,36 @@ class LLMClient:
             if not cfg.api_key:
                 continue
             yielded = False
+            accumulated: list[str] = []
+            start = time.monotonic()
             try:
                 async for chunk in stream_method(cfg, prompt, system_prompt, temperature, max_tokens):
                     yield chunk
+                    accumulated.append(chunk)
                     yielded = True
+                obs.log_stream_generation(
+                    provider=cfg.name,
+                    model=cfg.model,
+                    prompt=prompt,
+                    response="".join(accumulated),
+                    latency_ms=(time.monotonic() - start) * 1000,
+                )
                 return  # provider completed the stream successfully
             except Exception as exc:
                 logger.warning("%s streaming failed: %s", cfg.name, exc)
                 if yielded:
+                    obs.log_stream_generation(
+                        provider=cfg.name,
+                        model=cfg.model,
+                        prompt=prompt,
+                        response="".join(accumulated),
+                        latency_ms=(time.monotonic() - start) * 1000,
+                    )
                     # Already sent partial output; can't cleanly switch providers
                     return
 
         # All streaming providers failed — fall back to a single non-streaming chunk
+        # (generate() calls _call_provider which already logs via log_generation)
         try:
             resp = await self.generate(prompt, system_prompt, temperature, max_tokens)
             yield resp.text
