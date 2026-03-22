@@ -67,7 +67,7 @@ _SYSTEM_PROMPT = (
     "Medical words: 'وجع' (pain), 'حمى' (fever), 'كحة' (cough), 'دوخة' (dizziness), 'ضغط' (blood pressure). "
     "Rules: (1) Never give a definitive diagnosis — say 'ممكن يكون' or 'من الاحتمالات'. "
     "(2) Never name medications or dosages. "
-    "(3) Always add a disclaimer that this is not a substitute for a doctor."
+    "(3) Do NOT add any disclaimer — the app already shows one."
 )
 
 _TRIAGE_PROMPT = (
@@ -78,7 +78,8 @@ _TRIAGE_PROMPT = (
     "dam=blood, 3am=currently doing, aam=currently, ktir=very much, mno7=fine.\n\n"
     "Patient symptoms: {symptoms_text}\n\n"
     "Relevant medical context:\n{context}\n\n"
-    "Classify urgency. Respond ONLY in valid JSON, no extra text:\n"
+    "Classify urgency. Write possible_conditions and recommended_actions in {output_script}.\n"
+    "Respond ONLY in valid JSON, no extra text:\n"
     '{{\n'
     '  "triage_level": "GREEN" or "YELLOW" or "RED",\n'
     '  "possible_conditions": ["condition 1", "condition 2"],\n'
@@ -91,23 +92,10 @@ _TRIAGE_PROMPT = (
     "JSON:"
 )
 
-_RESPONSE_PROMPT = (
-    "Write a warm response in Lebanese colloquial Arabic (3ammiye) using Arabic script only — NOT Latin letters, NOT Modern Standard Arabic.\n\n"
-    "Patient symptoms: {symptoms_text}\n"
-    "Triage level: {triage_level}\n"
-    "Possible conditions: {conditions}\n"
-    "Recommended actions: {actions}\n\n"
-    "Style example (copy this warmth and vocabulary):\n"
-    "والله يا حبيبي هيدا الوجع ما بيانكبش. ممكن يكون من إجهاد أو من شي تاني، بس لازم تروح تتفحص عند الدكتور تا تشوف شو في بالزبط. مش منيح تتركه هيك.\n\n"
-    "Rules:\n"
-    "- Use Lebanese words: شو، هيدا/هيدي، كتير، مش، رح، عم بـ، متل، يعني، بس، تا، هيك\n"
-    "- Start with empathy (والله هيدا مو حلو / يي شو صعبة هيدي)\n"
-    "- Say ممكن يكون or من الاحتمالات before conditions (never state as fact)\n"
-    "- Be clear about urgency without excessive alarm\n"
-    "- No medication names or dosages\n"
-    "- 3-4 sentences max\n\n"
-    "الجواب:"
-)
+_RESPONSE_PROMPT = 'Write a warm response in Lebanese colloquial Arabic (3ammiye) using Arabic script only. NOT Latin letters, NOT Modern Standard Arabic.\n\nPatient symptoms: {symptoms_text}\nTriage level: {triage_level}\nPossible conditions: {conditions}\nRecommended actions: {actions}\n\nStyle examples (match this natural Lebanese tone):\nهلق هيدا الوجع بالضهر ممكن يكون من العضلات أو من شي تاني. حاول تريّح شوي وإذا ضل أكتر من يومين روح عالدكتور.\nيي شو صعبة هالحالة. ممكن يكون عندك التهاب أو شي متل هيك. لازم تروح تتفحص بأقرب وقت.\n\nRules:\n- Talk like a real Lebanese friend giving advice, natural and direct\n- Use Lebanese words: شو، هيدا/هيدي، كتير، مش، رح، عم بـ، متل، يعني، بس، تا، هيك، هلق\n- Start with empathy then get to the point\n- Say ممكن يكون before conditions (never diagnose)\n- Be specific about what to do next (روح عالدكتور، خود راحة، etc.)\n- No medication names or dosages\n- Do NOT add any disclaimer or warning, the app handles that\n- 2-3 sentences max, keep it concise\n\nالجواب:'
+
+_RESPONSE_PROMPT_FRANCO = "Write a warm response in Lebanese Franco-Arab (Arabic dialect written in Latin letters with numbers for Arabic sounds). Use Franco-Arab transliteration like: shu, hayda/haydi, ktir, msh, ra7, 3am, mtel, ya3ne, bas, ta, hek, hala2.\n\nPatient symptoms: {symptoms_text}\nTriage level: {triage_level}\nPossible conditions: {conditions}\nRecommended actions: {actions}\n\nStyle examples (match this natural Lebanese tone):\nhala2 hayda l waja3 bel daher momken ykun men l 3adalat aw men shi tene. 7awel tree7 shway w eza dal aktar men yawmen ru7 3al doctor.\nyii shu sa3be hal 7ale. momken ykun 3andak eltiheb aw shi mtel hek. lazem tru7 tetfa7as b a2rab wa2et.\n\nRules:\n- Write in Franco-Arab (Latin letters) like Lebanese people text on WhatsApp\n- Use numbers for Arabic sounds: 2=hamza/qaf, 3=3ayn, 5=kha, 7=7a, 8=ghayn\n- Talk like a real Lebanese friend, natural and direct\n- Start with empathy then get to the point\n- Say 'momken ykun' before conditions (never diagnose)\n- Be specific about what to do next (ru7 3al doctor, khod ra7a, etc.)\n- No medication names or dosages\n- Do NOT add any disclaimer or warning, the app handles that\n- 2-3 sentences max, keep it concise\n\nel jaweb:"
+
 
 
 _CLARIFICATION_PROMPT = (
@@ -120,12 +108,12 @@ _CLARIFICATION_PROMPT = (
 )
 
 _DISCLAIMER = (
-    "\u26a0\ufe0f Disclaimer: This info does not replace a doctor. "
-    "If the condition worsens, please see a doctor."
+    "\u26a0\ufe0f \u0647\u064a\u062f\u064a \u0627\u0644\u0645\u0639\u0644\u0648\u0645\u0627\u062a \u0645\u0627 \u0628\u062a\u063a\u0646\u064a \u0639\u0646 \u0627\u0644\u062f\u0643\u062a\u0648\u0631. "
+    "\u0625\u0630\u0627 \u0627\u0644\u0648\u0636\u0639 \u0633\u0627\u0621\u060c \u0631\u0648\u062d \u0639\u0627\u0644\u0637\u0628\u064a\u0628."
 )
 _EMERGENCY_DISCLAIMER = (
-    "\U0001f6a8 These symptoms are serious \u2014 "
-    "go to the ER now or call 140!"
+    "\U0001f6a8 \u0647\u0627\u0644\u0623\u0639\u0631\u0627\u0636 \u062e\u0637\u064a\u0631\u0629 \u2014 "
+    "\u0631\u0648\u062d \u0639\u0627\u0644\u0637\u0648\u0627\u0631\u0626 \u0647\u0644\u0642 \u0623\u0648 \u0627\u062a\u0635\u0644 140!"
 )
 
 
@@ -172,6 +160,10 @@ class TriageResult:
 
 class TriageEngine:
     """Multi-step triage agent: extract -> clarify -> retrieve -> classify -> respond."""
+
+    @staticmethod
+    def _get_response_prompt(script: str = "arabic") -> str:
+        return _RESPONSE_PROMPT_FRANCO if script == "franco" else _RESPONSE_PROMPT
 
     def __init__(
         self,
@@ -280,7 +272,7 @@ class TriageEngine:
             # Step 4: Triage classification
             obs.set_step("classification")
             classify_resp = await self._llm.generate(
-                prompt=_TRIAGE_PROMPT.format(symptoms_text=symptoms_text, context=context),
+                prompt=_TRIAGE_PROMPT.format(symptoms_text=symptoms_text, context=context, output_script="Lebanese Arabic"),
                 system_prompt=_SYSTEM_PROMPT,
                 temperature=0.1,
                 max_tokens=512,
@@ -330,6 +322,7 @@ class TriageEngine:
         self,
         query: str,
         prior_symptoms: list | None = None,
+        response_script: str = "arabic",
     ) -> AsyncGenerator[dict, None]:
         """Stream triage pipeline, yielding SSE-ready dicts.
 
@@ -397,7 +390,7 @@ class TriageEngine:
                 "needs_clarification": False,
             }
             async for chunk in self._llm.generate_stream(
-                prompt=_RESPONSE_PROMPT.format(
+                prompt=self._get_response_prompt(response_script).format(
                     symptoms_text=symptoms_text,
                     triage_level="RED",
                     conditions="possible emergency",
@@ -467,7 +460,7 @@ class TriageEngine:
         # Step 4: Classification
         obs.set_step("classification")
         classify_resp = await self._llm.generate(
-            prompt=_TRIAGE_PROMPT.format(symptoms_text=symptoms_text, context=context),
+            prompt=_TRIAGE_PROMPT.format(symptoms_text=symptoms_text, context=context, output_script="Franco-Arab (Latin letters)" if response_script == "franco" else "Lebanese Arabic"),
             system_prompt=_SYSTEM_PROMPT,
             temperature=0.1,
             max_tokens=512,
@@ -490,7 +483,7 @@ class TriageEngine:
         # Step 5: Stream response generation
         obs.set_step("stream-response")
         async for chunk in self._llm.generate_stream(
-            prompt=_RESPONSE_PROMPT.format(
+            prompt=self._get_response_prompt(response_script).format(
                 symptoms_text=symptoms_text,
                 triage_level=triage_level.value,
                 conditions=", ".join(conditions) if conditions else "unspecified",

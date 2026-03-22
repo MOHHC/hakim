@@ -5,6 +5,7 @@ import RTLWrapper from "./components/RTLWrapper"
 import DisclaimerBanner from "./components/DisclaimerBanner"
 import DarkModeToggle from "./components/DarkModeToggle"
 import LanguageToggle from "./components/LanguageToggle"
+import ResponseScriptToggle from "./components/ResponseScriptToggle"
 import ChatInterface from "./components/ChatInterface"
 import WelcomeScreen from "./components/WelcomeScreen"
 import SymptomHistory from "./components/SymptomHistory"
@@ -25,11 +26,11 @@ function HakimLogo({ size = 34 }: { size?: number }) {
 }
 
 function AppContent() {
-  const { t, language } = useLanguage()
+  const { t, language, responseScript } = useLanguage()
   const {
     messages, conversations, activeConversation, isStreaming,
     sendMessage, startNewChat, stopStreaming, selectConversation, deleteConversation,
-  } = useChat(language === "ar" ? "arabic" : "english")
+  } = useChat(language === "ar" ? "arabic" : "english", responseScript)
 
   const [showHistory, setShowHistory] = useState(false)
   const [input, setInput] = useState("")
@@ -87,6 +88,7 @@ function AppContent() {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
               </button>
+              <ResponseScriptToggle />
               <LanguageToggle />
               <DarkModeToggle />
               {showHistory && (

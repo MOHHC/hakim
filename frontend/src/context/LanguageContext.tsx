@@ -6,7 +6,7 @@ import {
   useEffect,
   type ReactNode,
 } from 'react'
-import type { Language } from '../types'
+import type { Language, ResponseScript } from '../types'
 
 const translations = {
   ar: {
@@ -67,6 +67,9 @@ interface LanguageContextValue {
   toggleLanguage: () => void
   t: (key: TranslationKey) => string
   dir: 'rtl' | 'ltr'
+  responseScript: ResponseScript
+  setResponseScript: (script: ResponseScript) => void
+  toggleResponseScript: () => void
 }
 
 const LanguageContext = createContext<LanguageContextValue | null>(null)
@@ -74,6 +77,9 @@ const LanguageContext = createContext<LanguageContextValue | null>(null)
 export function LanguageProvider({ children }: { children: ReactNode }) {
   const [language, setLang] = useState<Language>(
     () => (localStorage.getItem('hakim-lang') as Language) || 'ar',
+  )
+  const [responseScript, setScript] = useState<ResponseScript>(
+    () => (localStorage.getItem('hakim-script') as ResponseScript) || 'arabic',
   )
 
   const handleSet = useCallback((lang: Language) => {
@@ -85,6 +91,19 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
     setLang((prev) => {
       const next = prev === 'ar' ? 'en' : 'ar'
       localStorage.setItem('hakim-lang', next)
+      return next
+    })
+  }, [])
+
+  const handleSetScript = useCallback((s: ResponseScript) => {
+    setScript(s)
+    localStorage.setItem('hakim-script', s)
+  }, [])
+
+  const toggleResponseScript = useCallback(() => {
+    setScript((prev) => {
+      const next = prev === 'arabic' ? 'franco' : 'arabic'
+      localStorage.setItem('hakim-script', next)
       return next
     })
   }, [])
@@ -104,7 +123,7 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
 
   return (
     <LanguageContext.Provider
-      value={{ language, setLanguage: handleSet, toggleLanguage, t, dir }}
+      value={{ language, setLanguage: handleSet, toggleLanguage, t, dir, responseScript, setResponseScript: handleSetScript, toggleResponseScript }}
     >
       {children}
     </LanguageContext.Provider>

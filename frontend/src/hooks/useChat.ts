@@ -7,7 +7,7 @@ function uid(): string {
   return Date.now().toString(36) + Math.random().toString(36).slice(2)
 }
 
-export function useChat(languagePreference: string = 'auto') {
+export function useChat(languagePreference: string = 'auto', responseScript: string = 'arabic') {
   const [conversations, setConversations] = useLocalStorage<Conversation[]>(
     'hakim-conversations',
     [],
@@ -104,6 +104,7 @@ export function useChat(languagePreference: string = 'auto') {
           content,
           history,
           languagePreference,
+          responseScript,
           (event: SSEEvent) => {
             switch (event.type) {
               case 'triage_classified': {
@@ -196,7 +197,7 @@ export function useChat(languagePreference: string = 'auto') {
         abortRef.current = null
       }
     },
-    [activeId, messages, languagePreference, setConversations, patchMessage],
+    [activeId, messages, languagePreference, responseScript, setConversations, patchMessage],
   )
 
   const stopStreaming = useCallback(() => {

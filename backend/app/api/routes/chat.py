@@ -44,6 +44,10 @@ class ChatRequest(BaseModel):
         "auto",
         description="Preferred response language. 'auto' detects from input.",
     )
+    response_script: Literal["arabic", "franco"] = Field(
+        "arabic",
+        description="Response script: 'arabic' for Arabic script, 'franco' for Franco-Arab (Latin letters).",
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -112,7 +116,7 @@ async def chat(
 
         # Run streaming triage pipeline — yields triage_classified → chunk×N → complete
         try:
-            async for event in engine.triage_stream(request.message):
+            async for event in engine.triage_stream(request.message, response_script=request.response_script):
                 if event["type"] == "complete":
                     # Apply guardrail disclaimer post-processing to the complete event
                     is_emergency = event.get("triage_level") == "RED"

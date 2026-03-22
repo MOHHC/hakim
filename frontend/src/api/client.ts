@@ -8,6 +8,7 @@ async function _doStream(
   message: string,
   conversationHistory: Array<{ role: string; content: string }>,
   languagePreference: string,
+  responseScript: string,
   onEvent: (event: SSEEvent) => void,
   signal: AbortSignal | undefined,
   onContent: () => void,
@@ -19,6 +20,7 @@ async function _doStream(
       message,
       conversation_history: conversationHistory,
       language_preference: languagePreference,
+      response_script: responseScript,
     }),
     signal,
   })
@@ -69,6 +71,7 @@ export async function streamChat(
   message: string,
   conversationHistory: Array<{ role: string; content: string }>,
   languagePreference: string,
+  responseScript: string,
   onEvent: (event: SSEEvent) => void,
   signal?: AbortSignal,
 ): Promise<void> {
@@ -80,6 +83,7 @@ export async function streamChat(
         message,
         conversationHistory,
         languagePreference,
+        responseScript,
         onEvent,
         signal,
         () => { hadContent = true },

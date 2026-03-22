@@ -1,6 +1,7 @@
 export type TriageLevel = 'GREEN' | 'YELLOW' | 'RED'
 
 export type Language = 'ar' | 'en'
+export type ResponseScript = 'arabic' | 'franco'
 
 export interface Source {
   title?: string
