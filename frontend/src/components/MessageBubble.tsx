@@ -22,17 +22,22 @@ function AiAvatar() {
   )
 }
 
-function ConditionsList({ items, label }: { items: string[]; label: string }) {
+function ConditionsList({ items, label, arabicLabel }: { items: string[]; label: string; arabicLabel?: string }) {
   if (!items.length) return null
   return (
     <div>
       <div style={{
-        fontSize: '0.68rem', fontWeight: 600, letterSpacing: '0.08em',
-        color: 'var(--text-dim)', marginBottom: 6, textTransform: 'uppercase',
-        display: 'flex', alignItems: 'center', gap: 6,
+        fontSize: '0.78rem', fontWeight: 700, letterSpacing: '0.04em',
+        color: 'var(--text)', marginBottom: 8,
+        display: 'flex', alignItems: 'center', gap: 8,
       }}>
-        <div style={{ width: 12, height: 1, background: 'var(--gold)', opacity: 0.3 }} />
-        {label}
+        <div style={{ width: 16, height: 2, background: 'var(--gold)', borderRadius: 1 }} />
+        <span>{label}</span>
+        {arabicLabel && (
+          <span style={{ fontWeight: 400, fontSize: '0.72rem', color: 'var(--text-muted)', opacity: 0.8 }}>
+            ({arabicLabel})
+          </span>
+        )}
       </div>
       <ul style={{ margin: 0, padding: 0, listStyle: 'none', display: 'flex', flexDirection: 'column', gap: 4 }}>
         {items.map((c, i) => (
@@ -109,8 +114,8 @@ export default function MessageBubble({ message }: { message: Message }) {
                 marginTop: 14, display: "flex", flexDirection: "column", gap: 10,
                 borderTop: "1px solid var(--border-dim)", paddingTop: 12,
               }}>
-                <ConditionsList items={message.triageResult.possible_conditions} label={language === 'en' ? `${t("possibleConditions")} (حالات محتملة)` : t("possibleConditions")} />
-                <ConditionsList items={message.triageResult.recommended_actions} label={language === 'en' ? `${t("recommendedActions")} (الخطوات المنصوح فيها)` : t("recommendedActions")} />
+                <ConditionsList items={message.triageResult.possible_conditions} label={t("possibleConditions")} arabicLabel={language === 'en' ? 'حالات محتملة' : undefined} />
+                <ConditionsList items={message.triageResult.recommended_actions} label={t("recommendedActions")} arabicLabel={language === 'en' ? 'الخطوات المنصوح فيها' : undefined} />
 
                 <SourceCitation sources={message.triageResult.sources} />
 
