@@ -1,4 +1,5 @@
 """Per-IP sliding-window rate limiter middleware."""
+
 from __future__ import annotations
 
 import asyncio

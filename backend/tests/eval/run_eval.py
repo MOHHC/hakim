@@ -6,18 +6,17 @@ Usage:
     python -m tests.eval.run_eval --scenarios tests/eval/scenarios.json --output results.md
     python -m tests.eval.run_eval --skip-quality   # skip LLM quality scoring (faster)
 """
+
 from __future__ import annotations
 
 import argparse
 import asyncio
 import json
 import logging
-import os
 import sys
 import time
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any
 
 # ---------------------------------------------------------------------------
 # Bootstrap path so imports work when run with `python -m tests.eval.run_eval`
@@ -25,10 +24,10 @@ from typing import Any
 _BACKEND_ROOT = Path(__file__).parent.parent.parent
 sys.path.insert(0, str(_BACKEND_ROOT))
 
-from app.api.dependencies import get_arabic_processor, get_llm_client, get_triage_engine
-from app.core.llm_client import LLMClient
-from app.core.safety_guardrails import SafetyGuardrails
-from app.core.triage_engine import TriageEngine, TriageLevel
+from app.api.dependencies import get_llm_client, get_triage_engine  # noqa: E402
+from app.core.llm_client import LLMClient  # noqa: E402
+from app.core.safety_guardrails import SafetyGuardrails  # noqa: E402
+from app.core.triage_engine import TriageEngine  # noqa: E402
 
 logging.basicConfig(level=logging.WARNING)
 logger = logging.getLogger(__name__)
@@ -54,7 +53,7 @@ class ScenarioResult:
     level_correct: bool = False
     escalation_correct: bool = False
     followup_correct: bool = False
-    response_quality: float | None = None   # 1–5 LLM-judged
+    response_quality: float | None = None  # 1–5 LLM-judged
     latency_ms: float = 0.0
     error: str | None = None
     response_text: str = ""
@@ -72,7 +71,7 @@ class EvalMetrics:
     red_correct: int = 0
     # GREEN false-alarm rate
     green_total: int = 0
-    green_false_alarm: int = 0   # GREEN incorrectly classified as RED
+    green_false_alarm: int = 0  # GREEN incorrectly classified as RED
     # Follow-up accuracy
     followup_should_ask: int = 0
     followup_asked: int = 0
@@ -99,11 +98,19 @@ class EvalMetrics:
 
     @property
     def avg_quality(self) -> float | None:
-        return sum(self.quality_scores) / len(self.quality_scores) if self.quality_scores else None
+        return (
+            sum(self.quality_scores) / len(self.quality_scores)
+            if self.quality_scores
+            else None
+        )
 
     @property
     def avg_latency_ms(self) -> float:
-        return sum(self.latency_ms_list) / len(self.latency_ms_list) if self.latency_ms_list else 0.0
+        return (
+            sum(self.latency_ms_list) / len(self.latency_ms_list)
+            if self.latency_ms_list
+            else 0.0
+        )
 
     @property
     def p95_latency_ms(self) -> float:
@@ -115,7 +122,11 @@ class EvalMetrics:
 
     @property
     def followup_precision(self) -> float:
-        return self.followup_asked / self.followup_should_ask if self.followup_should_ask else 0.0
+        return (
+            self.followup_asked / self.followup_should_ask
+            if self.followup_should_ask
+            else 0.0
+        )
 
 
 # ---------------------------------------------------------------------------
@@ -164,6 +175,7 @@ async def judge_quality(llm: LLMClient, result: ScenarioResult) -> float | None:
 # Single scenario runner
 # ---------------------------------------------------------------------------
 
+
 async def run_scenario(
     scenario: dict,
     engine: TriageEngine,
@@ -208,8 +220,8 @@ async def run_scenario(
         result.level_correct = result.actual_level == result.expected_level
 
         # Escalation: scenario says should_escalate=True means we expect RED
-        result.escalation_correct = (
-            result.should_escalate == (result.actual_level == "RED")
+        result.escalation_correct = result.should_escalate == (
+            result.actual_level == "RED"
         )
 
         # Follow-up: did the engine ask a clarifying question?
@@ -232,6 +244,7 @@ async def run_scenario(
 # ---------------------------------------------------------------------------
 # Metrics aggregation
 # ---------------------------------------------------------------------------
+
 
 def aggregate(results: list[ScenarioResult]) -> EvalMetrics:
     m = EvalMetrics()
@@ -270,6 +283,7 @@ def aggregate(results: list[ScenarioResult]) -> EvalMetrics:
 # Report generation
 # ---------------------------------------------------------------------------
 
+
 def _pct(value: float) -> str:
     return f"{value * 100:.1f}%"
 
@@ -293,7 +307,9 @@ def build_json_report(
             "escalation_recall_pass": metrics.escalation_recall >= 0.95,
             "false_alarm_rate": round(metrics.false_alarm_rate, 4),
             "followup_precision": round(metrics.followup_precision, 4),
-            "avg_response_quality": round(metrics.avg_quality, 2) if metrics.avg_quality else None,
+            "avg_response_quality": round(metrics.avg_quality, 2)
+            if metrics.avg_quality
+            else None,
             "avg_latency_ms": round(metrics.avg_latency_ms, 1),
             "p95_latency_ms": round(metrics.p95_latency_ms, 1),
         },
@@ -336,13 +352,19 @@ def build_markdown_report(
         f"| Escalation Recall (RED) | {_pct(metrics.escalation_recall)} | ≥ 95% "
         f"| **{escalation_status}** |"
     )
-    a(f"| False Alarm Rate (GREEN→RED) | {_pct(metrics.false_alarm_rate)} | ≤ 10% | {_pass_fail(metrics.false_alarm_rate <= 0.10)} |")
+    a(
+        f"| False Alarm Rate (GREEN→RED) | {_pct(metrics.false_alarm_rate)} | ≤ 10% | {_pass_fail(metrics.false_alarm_rate <= 0.10)} |"
+    )
     a(f"| Follow-up Precision | {_pct(metrics.followup_precision)} | — | — |")
     if metrics.avg_quality is not None:
-        a(f"| Avg Response Quality (1–5) | {metrics.avg_quality:.2f} | ≥ 3.5 | {_pass_fail(metrics.avg_quality >= 3.5)} |")
+        a(
+            f"| Avg Response Quality (1–5) | {metrics.avg_quality:.2f} | ≥ 3.5 | {_pass_fail(metrics.avg_quality >= 3.5)} |"
+        )
     a(f"| Avg Latency | {metrics.avg_latency_ms:.0f} ms | — | — |")
     a(f"| P95 Latency | {metrics.p95_latency_ms:.0f} ms | — | — |")
-    a(f"| Errors | {metrics.error_count} | 0 | {_pass_fail(metrics.error_count == 0)} |")
+    a(
+        f"| Errors | {metrics.error_count} | 0 | {_pass_fail(metrics.error_count == 0)} |"
+    )
     a("")
 
     # Per-level breakdown
@@ -356,7 +378,9 @@ def build_markdown_report(
         if failures:
             a("**Incorrect classifications:**\n")
             for r in failures:
-                a(f"- `{r.id}` → got **{r.actual_level}** (expected {r.expected_level})")
+                a(
+                    f"- `{r.id}` → got **{r.actual_level}** (expected {r.expected_level})"
+                )
             a("")
         else:
             a("All correct.\n")
@@ -369,7 +393,9 @@ def build_markdown_report(
     for r in edge_results:
         guarded = "yes" if r.guardrail_blocked else "no"
         correct = "✓" if r.level_correct else "✗"
-        a(f"| {r.id} | {r.expected_level} | {r.actual_level or 'error'} | {guarded} | {correct} |")
+        a(
+            f"| {r.id} | {r.expected_level} | {r.actual_level or 'error'} | {guarded} | {correct} |"
+        )
     a("")
 
     # Full results table
@@ -394,7 +420,9 @@ def build_markdown_report(
             if r.expected_level == "RED" and r.actual_level != "RED" and not r.error
         ]
         a("## ⚠️  CRITICAL: Escalation Recall Below 95%\n")
-        a(f"Escalation recall is **{_pct(metrics.escalation_recall)}** — below the required 95% threshold.\n")
+        a(
+            f"Escalation recall is **{_pct(metrics.escalation_recall)}** — below the required 95% threshold.\n"
+        )
         a("Missed RED scenarios:\n")
         for sid in missed:
             a(f"- `{sid}`")
@@ -410,6 +438,7 @@ def build_markdown_report(
 # Main
 # ---------------------------------------------------------------------------
 
+
 async def main(
     scenarios_path: Path,
     output_path: Path,
@@ -424,8 +453,12 @@ async def main(
 
     # Check API keys
     from app.config import settings
+
     if not settings.gemini_api_key and not settings.groq_api_key:
-        print("ERROR: No LLM API keys configured. Set GEMINI_API_KEY or GROQ_API_KEY.", file=sys.stderr)
+        print(
+            "ERROR: No LLM API keys configured. Set GEMINI_API_KEY or GROQ_API_KEY.",
+            file=sys.stderr,
+        )
         return 1
 
     # Build engine & deps (same as dependencies.py but explicit)
@@ -460,9 +493,11 @@ async def main(
 
     # Write files
     output_path.write_text(md_report, encoding="utf-8")
-    json_report_path.write_text(json.dumps(json_report, indent=2, ensure_ascii=False), encoding="utf-8")
+    json_report_path.write_text(
+        json.dumps(json_report, indent=2, ensure_ascii=False), encoding="utf-8"
+    )
 
-    print(f"\nReports written:")
+    print("\nReports written:")
     print(f"  Markdown : {output_path}")
     print(f"  JSON     : {json_report_path}")
 
@@ -472,7 +507,9 @@ async def main(
     print("=" * 60)
     print(f"  Triage accuracy        : {_pct(metrics.triage_accuracy)}")
     escalation_label = "PASS" if metrics.escalation_recall >= 0.95 else "FAIL ⚠️"
-    print(f"  Escalation recall (RED): {_pct(metrics.escalation_recall)}  [{escalation_label}]")
+    print(
+        f"  Escalation recall (RED): {_pct(metrics.escalation_recall)}  [{escalation_label}]"
+    )
     print(f"  False alarm rate       : {_pct(metrics.false_alarm_rate)}")
     if metrics.avg_quality is not None:
         print(f"  Avg response quality   : {metrics.avg_quality:.2f}/5")

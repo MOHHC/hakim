@@ -2,8 +2,7 @@
 
 from __future__ import annotations
 
-import math
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
@@ -16,6 +15,7 @@ from app.knowledge.vector_store import SearchResult
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
+
 
 def _make_search_result(
     chunk_id: str = "doc_0",
@@ -51,7 +51,9 @@ def _make_llm_response(score_text: str = "0.9") -> LLMResponse:
     )
 
 
-def _make_symptom(latin: str = "waja3", msa: str = "ألم", english: str = "pain") -> LexiconMatch:
+def _make_symptom(
+    latin: str = "waja3", msa: str = "ألم", english: str = "pain"
+) -> LexiconMatch:
     return LexiconMatch(
         dialect_term="وجع",
         dialect_term_latin=latin,
@@ -99,6 +101,7 @@ def _make_pipeline(
 # QueryBundle
 # ---------------------------------------------------------------------------
 
+
 class TestQueryBundle:
     def test_all_queries_deduplicates(self):
         b = QueryBundle(original="waja3", msa="waja3", english="pain")
@@ -123,6 +126,7 @@ class TestQueryBundle:
 # _build_query_bundle
 # ---------------------------------------------------------------------------
 
+
 class TestBuildQueryBundle:
     def test_original_preserved(self):
         pipe = _make_pipeline()
@@ -131,7 +135,10 @@ class TestBuildQueryBundle:
 
     def test_msa_from_symptoms(self):
         pipe = _make_pipeline()
-        symptoms = [_make_symptom(msa="ألم"), _make_symptom(latin="hammy", msa="حمى", english="fever")]
+        symptoms = [
+            _make_symptom(msa="ألم"),
+            _make_symptom(latin="hammy", msa="حمى", english="fever"),
+        ]
         b = pipe._build_query_bundle("test", symptoms)
         assert "ألم" in b.msa
         assert "حمى" in b.msa
@@ -150,7 +157,10 @@ class TestBuildQueryBundle:
 
     def test_deduplicates_msa_terms(self):
         pipe = _make_pipeline()
-        symptoms = [_make_symptom(msa="ألم"), _make_symptom(latin="waja3b", msa="ألم", english="pain")]
+        symptoms = [
+            _make_symptom(msa="ألم"),
+            _make_symptom(latin="waja3b", msa="ألم", english="pain"),
+        ]
         b = pipe._build_query_bundle("test", symptoms)
         assert b.msa.count("ألم") == 1
 
@@ -158,6 +168,7 @@ class TestBuildQueryBundle:
 # ---------------------------------------------------------------------------
 # _multi_query_search
 # ---------------------------------------------------------------------------
+
 
 class TestMultiQuerySearch:
     @pytest.mark.asyncio
@@ -209,7 +220,9 @@ class TestMultiQuerySearch:
         store = _mock_store()
         pipe = _make_pipeline(store=store)
         bundle = QueryBundle(original="a", msa="b", english="c")
-        await pipe._multi_query_search(bundle, filters={"medical_category": "cardiovascular"})
+        await pipe._multi_query_search(
+            bundle, filters={"medical_category": "cardiovascular"}
+        )
         for call in store.search.call_args_list:
             assert call.kwargs.get("filters") == {"medical_category": "cardiovascular"}
 
@@ -217,6 +230,7 @@ class TestMultiQuerySearch:
 # ---------------------------------------------------------------------------
 # Re-ranking
 # ---------------------------------------------------------------------------
+
 
 class TestReranking:
     @pytest.mark.asyncio
@@ -259,6 +273,7 @@ class TestReranking:
 # retrieve() end-to-end
 # ---------------------------------------------------------------------------
 
+
 class TestRetrieve:
     @pytest.mark.asyncio
     async def test_returns_list_of_retrieval_results(self):
@@ -269,7 +284,10 @@ class TestRetrieve:
 
     @pytest.mark.asyncio
     async def test_respects_top_k(self):
-        candidates = [_make_search_result(chunk_id=f"doc_{i}", score=0.9 - i * 0.05) for i in range(10)]
+        candidates = [
+            _make_search_result(chunk_id=f"doc_{i}", score=0.9 - i * 0.05)
+            for i in range(10)
+        ]
         store = _mock_store(candidates)
         pipe = _make_pipeline(store=store, rerank=False, top_k=3)
         results = await pipe.retrieve("chest pain")
@@ -308,12 +326,22 @@ class TestRetrieve:
         pipe = _make_pipeline(rerank=False)
         results = await pipe.retrieve("pain")
         d = results[0].to_dict()
-        for key in ("chunk_id", "chunk_text", "source", "relevance_score", "medical_category", "section_title"):
+        for key in (
+            "chunk_id",
+            "chunk_text",
+            "source",
+            "relevance_score",
+            "medical_category",
+            "section_title",
+        ):
             assert key in d
 
     @pytest.mark.asyncio
     async def test_rerank_enabled_calls_llm(self):
-        candidates = [_make_search_result(chunk_id=f"doc_{i}", score=0.9 - i * 0.05) for i in range(6)]
+        candidates = [
+            _make_search_result(chunk_id=f"doc_{i}", score=0.9 - i * 0.05)
+            for i in range(6)
+        ]
         store = _mock_store(candidates)
         llm = _mock_llm("0.8")
         pipe = _make_pipeline(store=store, llm=llm, rerank=True, top_k=3)
@@ -331,7 +359,10 @@ class TestRetrieve:
 
     @pytest.mark.asyncio
     async def test_results_sorted_by_relevance_desc(self):
-        candidates = [_make_search_result(chunk_id=f"doc_{i}", score=0.5 + i * 0.1) for i in range(5)]
+        candidates = [
+            _make_search_result(chunk_id=f"doc_{i}", score=0.5 + i * 0.1)
+            for i in range(5)
+        ]
         store = _mock_store(candidates)
         pipe = _make_pipeline(store=store, rerank=False, top_k=5)
         results = await pipe.retrieve("chest pain")

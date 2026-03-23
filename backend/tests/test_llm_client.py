@@ -56,8 +56,14 @@ def _mock_http_response(json_data: dict, status_code: int = 200) -> MagicMock:
 # ProviderConfig
 # ---------------------------------------------------------------------------
 
+
 def test_provider_config_fields():
-    cfg = ProviderConfig(name="test", base_url="https://api.test.com", api_key="key123", model="test-model")
+    cfg = ProviderConfig(
+        name="test",
+        base_url="https://api.test.com",
+        api_key="key123",
+        model="test-model",
+    )
     assert cfg.name == "test"
     assert cfg.base_url == "https://api.test.com"
     assert cfg.api_key == "key123"
@@ -67,8 +73,11 @@ def test_provider_config_fields():
 
 def test_provider_config_extra_headers():
     cfg = ProviderConfig(
-        name="custom", base_url="https://x.com", api_key="k", model="m",
-        extra_headers={"X-Custom": "value"}
+        name="custom",
+        base_url="https://x.com",
+        api_key="k",
+        model="m",
+        extra_headers={"X-Custom": "value"},
     )
     assert cfg.extra_headers["X-Custom"] == "value"
 
@@ -87,8 +96,17 @@ def test_groq_config_uses_bearer():
 # LLMResponse
 # ---------------------------------------------------------------------------
 
+
 def test_llm_response_total_tokens():
-    r = LLMResponse(text="hi", provider="gemini", model="m", prompt_tokens=5, completion_tokens=10, total_tokens=15, latency_ms=100.0)
+    r = LLMResponse(
+        text="hi",
+        provider="gemini",
+        model="m",
+        prompt_tokens=5,
+        completion_tokens=10,
+        total_tokens=15,
+        latency_ms=100.0,
+    )
     assert r.total_tokens == 15
     assert r.latency_ms == 100.0
 
@@ -97,12 +115,15 @@ def test_llm_response_total_tokens():
 # Successful Gemini call
 # ---------------------------------------------------------------------------
 
+
 @pytest.mark.asyncio
 async def test_generate_success_gemini():
     client = LLMClient()
     mock_resp = _mock_http_response(_gemini_response("hello world"))
 
-    with patch("httpx.AsyncClient.post", new_callable=AsyncMock, return_value=mock_resp):
+    with patch(
+        "httpx.AsyncClient.post", new_callable=AsyncMock, return_value=mock_resp
+    ):
         result = await client.generate("What hurts?")
 
     assert result.text == "hello world"
@@ -116,6 +137,7 @@ async def test_generate_success_gemini():
 # ---------------------------------------------------------------------------
 # Fallback to Groq when Gemini fails
 # ---------------------------------------------------------------------------
+
 
 @pytest.mark.asyncio
 async def test_generate_falls_back_to_groq_on_gemini_failure():
@@ -143,12 +165,15 @@ async def test_generate_falls_back_to_groq_on_gemini_failure():
 # All providers fail → LLMError
 # ---------------------------------------------------------------------------
 
+
 @pytest.mark.asyncio
 async def test_generate_raises_when_all_providers_fail():
     client = LLMClient()
     fail_resp = _mock_http_response({}, status_code=500)
 
-    with patch("httpx.AsyncClient.post", new_callable=AsyncMock, return_value=fail_resp):
+    with patch(
+        "httpx.AsyncClient.post", new_callable=AsyncMock, return_value=fail_resp
+    ):
         with pytest.raises(LLMError, match="All providers failed"):
             await client.generate("test")
 
@@ -156,6 +181,7 @@ async def test_generate_raises_when_all_providers_fail():
 # ---------------------------------------------------------------------------
 # Retry logic
 # ---------------------------------------------------------------------------
+
 
 @pytest.mark.asyncio
 async def test_retries_on_transient_error():
@@ -173,7 +199,9 @@ async def test_retries_on_transient_error():
             return _mock_http_response(_gemini_response("recovered"))
         return ok_resp
 
-    with patch("httpx.AsyncClient.post", new_callable=AsyncMock, side_effect=flaky_post):
+    with patch(
+        "httpx.AsyncClient.post", new_callable=AsyncMock, side_effect=flaky_post
+    ):
         with patch("asyncio.sleep", new_callable=AsyncMock):
             result = await client.generate("headache")
 
@@ -210,6 +238,7 @@ async def test_exponential_backoff_delays():
 # system_prompt and parameters passed correctly
 # ---------------------------------------------------------------------------
 
+
 @pytest.mark.asyncio
 async def test_system_prompt_included_in_groq_request():
     client = LLMClient()
@@ -232,7 +261,9 @@ async def test_system_prompt_included_in_groq_request():
 
     with patch("httpx.AsyncClient.post", new_callable=AsyncMock, side_effect=mock_post):
         with patch("asyncio.sleep", new_callable=AsyncMock):
-            await client.generate("symptoms", system_prompt="You are a medical assistant.")
+            await client.generate(
+                "symptoms", system_prompt="You are a medical assistant."
+            )
 
     messages = captured_body.get("messages", [])
     roles = [m["role"] for m in messages]
@@ -251,7 +282,9 @@ async def test_temperature_and_max_tokens_passed_to_gemini():
         captured_body = json or {}
         return _mock_http_response(_gemini_response())
 
-    with patch("httpx.AsyncClient.post", new_callable=AsyncMock, side_effect=capture_post):
+    with patch(
+        "httpx.AsyncClient.post", new_callable=AsyncMock, side_effect=capture_post
+    ):
         await client.generate("test", temperature=0.7, max_tokens=512)
 
     gen_config = captured_body.get("generationConfig", {})
@@ -263,6 +296,7 @@ async def test_temperature_and_max_tokens_passed_to_gemini():
 # Token counting
 # ---------------------------------------------------------------------------
 
+
 @pytest.mark.asyncio
 async def test_token_counts_from_gemini():
     client = LLMClient()
@@ -270,7 +304,11 @@ async def test_token_counts_from_gemini():
         "candidates": [{"content": {"parts": [{"text": "answer"}]}}],
         "usageMetadata": {"promptTokenCount": 42, "candidatesTokenCount": 88},
     }
-    with patch("httpx.AsyncClient.post", new_callable=AsyncMock, return_value=_mock_http_response(resp_data)):
+    with patch(
+        "httpx.AsyncClient.post",
+        new_callable=AsyncMock,
+        return_value=_mock_http_response(resp_data),
+    ):
         result = await client.generate("test")
 
     assert result.prompt_tokens == 42

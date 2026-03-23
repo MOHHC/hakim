@@ -1,4 +1,5 @@
 """Tests for TriageEngine -- LLM and RAGPipeline mocked throughout."""
+
 from __future__ import annotations
 
 from unittest.mock import AsyncMock, MagicMock
@@ -54,7 +55,9 @@ def _mock_proc(symptoms: list | None = None) -> MagicMock:
     return proc
 
 
-def _make_symptom(latin: str = "waja3", msa: str = "pain", english: str = "pain") -> LexiconMatch:
+def _make_symptom(
+    latin: str = "waja3", msa: str = "pain", english: str = "pain"
+) -> LexiconMatch:
     return LexiconMatch(
         dialect_term="waja3",
         dialect_term_latin=latin,
@@ -126,9 +129,14 @@ class TestTriageResultToDict:
     def test_required_keys_present(self):
         d = self._make().to_dict()
         for key in (
-            "triage_level", "response_text", "possible_conditions",
-            "recommended_actions", "sources", "disclaimer",
-            "needs_clarification", "clarification_question",
+            "triage_level",
+            "response_text",
+            "possible_conditions",
+            "recommended_actions",
+            "sources",
+            "disclaimer",
+            "needs_clarification",
+            "clarification_question",
         ):
             assert key in d
 
@@ -198,7 +206,9 @@ class TestParseTriageJson:
         assert len(conditions) == 5
 
     def test_extra_text_around_json(self):
-        text = "Sure! Here is the JSON:\n" + _triage_json("YELLOW") + "\nHope that helps."
+        text = (
+            "Sure! Here is the JSON:\n" + _triage_json("YELLOW") + "\nHope that helps."
+        )
         level, _, _ = self.parse(text)
         assert level == TriageLevel.YELLOW
 
@@ -264,7 +274,9 @@ class TestRefusalRegex:
         assert _REFUSAL_RE.search("\u0631\u0636\u064a\u0639")  # رضيع
 
     def test_lab_result_arabic(self):
-        assert _REFUSAL_RE.search("\u0646\u062a\u064a\u062c\u0629 \u062a\u062d\u0644\u064a\u0644")
+        assert _REFUSAL_RE.search(
+            "\u0646\u062a\u064a\u062c\u0629 \u062a\u062d\u0644\u064a\u0644"
+        )
 
     def test_normal_query_not_refused(self):
         assert not _REFUSAL_RE.search("I have a headache and fever")
@@ -298,7 +310,9 @@ class TestTriageEngineIntegration:
     @pytest.mark.asyncio
     async def test_refusal_for_infant_query(self):
         engine = self._engine()
-        result = await engine.triage("\u0631\u0636\u064a\u0639 \u0639\u0646\u062f\u0647 \u062d\u0645\u0649")
+        result = await engine.triage(
+            "\u0631\u0636\u064a\u0639 \u0639\u0646\u062f\u0647 \u062d\u0645\u0649"
+        )
         assert result.triage_level == TriageLevel.YELLOW
         assert result.possible_conditions == []
         assert result.sources == []
@@ -413,10 +427,12 @@ class TestTriageEngineIntegration:
     @pytest.mark.asyncio
     async def test_full_pipeline_calls_llm_twice(self):
         llm = MagicMock()
-        llm.generate = AsyncMock(side_effect=[
-            _llm_response(_triage_json("GREEN"), 40),
-            _llm_response("Rest at home.", 40),
-        ])
+        llm.generate = AsyncMock(
+            side_effect=[
+                _llm_response(_triage_json("GREEN"), 40),
+                _llm_response("Rest at home.", 40),
+            ]
+        )
         symptoms = [_make_symptom(), _make_symptom("hammy", "fever", "fever")]
         proc = _mock_proc(symptoms)
         engine = TriageEngine(llm_client=llm, arabic_processor=proc)
@@ -427,10 +443,12 @@ class TestTriageEngineIntegration:
     async def test_prior_symptoms_skip_extraction(self):
         proc = _mock_proc()
         llm = MagicMock()
-        llm.generate = AsyncMock(side_effect=[
-            _llm_response(_triage_json("GREEN"), 40),
-            _llm_response("Rest.", 40),
-        ])
+        llm.generate = AsyncMock(
+            side_effect=[
+                _llm_response(_triage_json("GREEN"), 40),
+                _llm_response("Rest.", 40),
+            ]
+        )
         engine = TriageEngine(llm_client=llm, arabic_processor=proc)
         prior = [_make_symptom(), _make_symptom("hammy", "fever", "fever")]
         await engine.triage("query text", prior_symptoms=prior)
@@ -442,10 +460,12 @@ class TestTriageEngineIntegration:
     async def test_rag_called_when_provided(self):
         rag = _mock_rag([_make_retrieval_result()])
         llm = MagicMock()
-        llm.generate = AsyncMock(side_effect=[
-            _llm_response(_triage_json("GREEN"), 40),
-            _llm_response("Rest.", 40),
-        ])
+        llm.generate = AsyncMock(
+            side_effect=[
+                _llm_response(_triage_json("GREEN"), 40),
+                _llm_response("Rest.", 40),
+            ]
+        )
         symptoms = [_make_symptom(), _make_symptom("hammy", "fever", "fever")]
         proc = _mock_proc(symptoms)
         engine = TriageEngine(llm_client=llm, arabic_processor=proc, rag_pipeline=rag)
@@ -456,10 +476,12 @@ class TestTriageEngineIntegration:
     @pytest.mark.asyncio
     async def test_rag_skipped_when_none(self):
         llm = MagicMock()
-        llm.generate = AsyncMock(side_effect=[
-            _llm_response(_triage_json("GREEN"), 40),
-            _llm_response("Rest.", 40),
-        ])
+        llm.generate = AsyncMock(
+            side_effect=[
+                _llm_response(_triage_json("GREEN"), 40),
+                _llm_response("Rest.", 40),
+            ]
+        )
         symptoms = [_make_symptom(), _make_symptom("hammy", "fever", "fever")]
         proc = _mock_proc(symptoms)
         engine = TriageEngine(llm_client=llm, arabic_processor=proc, rag_pipeline=None)
@@ -471,10 +493,12 @@ class TestTriageEngineIntegration:
     @pytest.mark.asyncio
     async def test_total_tokens_accumulated(self):
         llm = MagicMock()
-        llm.generate = AsyncMock(side_effect=[
-            _llm_response(_triage_json("GREEN"), 60),
-            _llm_response("Rest.", 80),
-        ])
+        llm.generate = AsyncMock(
+            side_effect=[
+                _llm_response(_triage_json("GREEN"), 60),
+                _llm_response("Rest.", 80),
+            ]
+        )
         symptoms = [_make_symptom(), _make_symptom("hammy", "fever", "fever")]
         proc = _mock_proc(symptoms)
         engine = TriageEngine(llm_client=llm, arabic_processor=proc)
@@ -486,6 +510,7 @@ class TestTriageEngineIntegration:
     @pytest.mark.asyncio
     async def test_to_dict_serializable(self):
         import json as _json
+
         symptoms = [_make_symptom(), _make_symptom("hammy", "fever", "fever")]
         engine = self._engine(
             llm_responses=[_triage_json("GREEN"), "Rest."],

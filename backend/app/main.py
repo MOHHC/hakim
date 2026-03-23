@@ -1,4 +1,5 @@
 """FastAPI application entry point."""
+
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
@@ -16,6 +17,7 @@ async def lifespan(app: FastAPI):  # noqa: ARG001
     yield
     # Drain Langfuse's async event queue before the process exits
     from app.core.observability import flush  # noqa: PLC0415
+
     flush()
 
 

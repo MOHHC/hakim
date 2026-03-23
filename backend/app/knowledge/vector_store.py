@@ -35,22 +35,79 @@ DEFAULT_COLLECTION = "hakim_medical"
 # Weight for vector score in hybrid fusion (0=keyword only, 1=vector only)
 DEFAULT_ALPHA = 0.7
 # Medical domain stop-words (too common to be useful for keyword matching)
-_STOP_WORDS = frozenset({
-    "the", "a", "an", "is", "are", "was", "were", "be", "been", "being",
-    "have", "has", "had", "do", "does", "did", "will", "would", "could",
-    "should", "may", "might", "shall", "can", "need", "to", "of", "in",
-    "for", "on", "with", "at", "by", "from", "as", "or", "and", "but",
-    "not", "this", "that", "it", "its", "their", "they", "we", "our",
-    "patient", "patients", "also", "used", "using", "based",
-})
+_STOP_WORDS = frozenset(
+    {
+        "the",
+        "a",
+        "an",
+        "is",
+        "are",
+        "was",
+        "were",
+        "be",
+        "been",
+        "being",
+        "have",
+        "has",
+        "had",
+        "do",
+        "does",
+        "did",
+        "will",
+        "would",
+        "could",
+        "should",
+        "may",
+        "might",
+        "shall",
+        "can",
+        "need",
+        "to",
+        "of",
+        "in",
+        "for",
+        "on",
+        "with",
+        "at",
+        "by",
+        "from",
+        "as",
+        "or",
+        "and",
+        "but",
+        "not",
+        "this",
+        "that",
+        "it",
+        "its",
+        "their",
+        "they",
+        "we",
+        "our",
+        "patient",
+        "patients",
+        "also",
+        "used",
+        "using",
+        "based",
+    }
+)
 
 
 # ---------------------------------------------------------------------------
 # SearchResult
 # ---------------------------------------------------------------------------
 
+
 class SearchResult:
-    __slots__ = ("chunk_id", "text", "metadata", "vector_score", "keyword_score", "score")
+    __slots__ = (
+        "chunk_id",
+        "text",
+        "metadata",
+        "vector_score",
+        "keyword_score",
+        "score",
+    )
 
     def __init__(
         self,
@@ -85,6 +142,7 @@ class SearchResult:
 # ---------------------------------------------------------------------------
 # Keyword scoring
 # ---------------------------------------------------------------------------
+
 
 def _tokenize(text: str) -> list[str]:
     return [
@@ -123,6 +181,7 @@ def _keyword_score(query: str, doc_text: str, corpus_texts: list[str]) -> float:
 # VectorStore
 # ---------------------------------------------------------------------------
 
+
 class VectorStore:
     """Persistent ChromaDB vector store with hybrid search."""
 
@@ -146,7 +205,9 @@ class VectorStore:
         )
         logger.info(
             "VectorStore ready: collection=%r persist_dir=%s count=%d",
-            collection_name, persist_dir, self._collection.count(),
+            collection_name,
+            persist_dir,
+            self._collection.count(),
         )
 
     # ------------------------------------------------------------------
@@ -187,7 +248,9 @@ class VectorStore:
             documents=texts,
             metadatas=metadatas,
         )
-        logger.info("Stored %d documents in collection %r", len(chunks), self._collection_name)
+        logger.info(
+            "Stored %d documents in collection %r", len(chunks), self._collection_name
+        )
         return len(chunks)
 
     # ------------------------------------------------------------------
@@ -286,6 +349,7 @@ class VectorStore:
 # ---------------------------------------------------------------------------
 # Metadata filter builder
 # ---------------------------------------------------------------------------
+
 
 def _build_where(filters: dict[str, Any]) -> dict[str, Any]:
     """Convert a flat {field: value} dict to ChromaDB $and/$eq syntax."""

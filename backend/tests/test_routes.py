@@ -3,6 +3,7 @@
 All LLM / engine calls are mocked via app.dependency_overrides so no
 real API keys or vector store are needed.
 """
+
 from __future__ import annotations
 
 import json
@@ -76,7 +77,9 @@ def _mock_engine(result: TriageResult) -> TriageEngine:
     return engine
 
 
-def _mock_guardrails(safe: bool = True, violation: ViolationType | None = None) -> SafetyGuardrails:
+def _mock_guardrails(
+    safe: bool = True, violation: ViolationType | None = None
+) -> SafetyGuardrails:
     g = MagicMock(spec=SafetyGuardrails)
     if safe:
         g.check_query.return_value = GuardrailResult(is_safe=True)
@@ -212,7 +215,9 @@ class TestTriageRoute:
     @pytest.mark.asyncio
     async def test_triage_level_in_response(self, client):
         self._setup(_make_triage_result(TriageLevel.YELLOW))
-        data = (await client.post("/api/triage", json={"query": "3andi waja3 ras"})).json()
+        data = (
+            await client.post("/api/triage", json={"query": "3andi waja3 ras"})
+        ).json()
         assert data["triage_level"] == "YELLOW"
 
     @pytest.mark.asyncio
@@ -220,40 +225,59 @@ class TestTriageRoute:
         self._setup(_make_triage_result())
         data = (await client.post("/api/triage", json={"query": "chest pain"})).json()
         for key in (
-            "triage_level", "response_text", "possible_conditions",
-            "recommended_actions", "sources", "disclaimer",
-            "needs_clarification", "clarification_question",
+            "triage_level",
+            "response_text",
+            "possible_conditions",
+            "recommended_actions",
+            "sources",
+            "disclaimer",
+            "needs_clarification",
+            "clarification_question",
         ):
             assert key in data, f"missing field: {key}"
 
     @pytest.mark.asyncio
     async def test_green_triage(self, client):
         self._setup(_make_triage_result(TriageLevel.GREEN))
-        data = (await client.post("/api/triage", json={"query": "mild headache"})).json()
+        data = (
+            await client.post("/api/triage", json={"query": "mild headache"})
+        ).json()
         assert data["triage_level"] == "GREEN"
 
     @pytest.mark.asyncio
     async def test_red_triage(self, client):
         self._setup(_make_triage_result(TriageLevel.RED, response="Go to ER now."))
-        data = (await client.post("/api/triage", json={"query": "severe chest pain"})).json()
+        data = (
+            await client.post("/api/triage", json={"query": "severe chest pain"})
+        ).json()
         assert data["triage_level"] == "RED"
 
     @pytest.mark.asyncio
     async def test_blocked_query_returns_200(self, client):
-        self._setup(_make_triage_result(), safe=False, violation=ViolationType.SCOPE_INFANT)
+        self._setup(
+            _make_triage_result(), safe=False, violation=ViolationType.SCOPE_INFANT
+        )
         resp = await client.post("/api/triage", json={"query": "my infant has fever"})
         assert resp.status_code == 200
 
     @pytest.mark.asyncio
     async def test_blocked_response_has_blocked_true(self, client):
-        self._setup(_make_triage_result(), safe=False, violation=ViolationType.SCOPE_INFANT)
-        data = (await client.post("/api/triage", json={"query": "my infant is sick"})).json()
+        self._setup(
+            _make_triage_result(), safe=False, violation=ViolationType.SCOPE_INFANT
+        )
+        data = (
+            await client.post("/api/triage", json={"query": "my infant is sick"})
+        ).json()
         assert data["blocked"] is True
 
     @pytest.mark.asyncio
     async def test_blocked_response_has_reason(self, client):
-        self._setup(_make_triage_result(), safe=False, violation=ViolationType.SCOPE_PREGNANCY)
-        data = (await client.post("/api/triage", json={"query": "pregnant with pain"})).json()
+        self._setup(
+            _make_triage_result(), safe=False, violation=ViolationType.SCOPE_PREGNANCY
+        )
+        data = (
+            await client.post("/api/triage", json={"query": "pregnant with pain"})
+        ).json()
         assert data["reason"] == ViolationType.SCOPE_PREGNANCY
 
     @pytest.mark.asyncio

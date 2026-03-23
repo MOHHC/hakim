@@ -10,7 +10,6 @@ API docs:
 
 from __future__ import annotations
 
-import asyncio
 import logging
 from typing import Sequence
 
@@ -35,6 +34,7 @@ _MAX_BATCH = 100
 # Internal helpers
 # ---------------------------------------------------------------------------
 
+
 def _build_headers() -> dict[str, str]:
     return {
         "x-goog-api-key": settings.gemini_api_key,
@@ -56,7 +56,10 @@ async def _post(client: httpx.AsyncClient, body: dict) -> dict:
 # Public API
 # ---------------------------------------------------------------------------
 
-async def embed_text(text: str, *, task_type: str = "RETRIEVAL_DOCUMENT") -> list[float]:
+
+async def embed_text(
+    text: str, *, task_type: str = "RETRIEVAL_DOCUMENT"
+) -> list[float]:
     """Embed a single text string. Returns a 768-dim float vector.
 
     task_type options:

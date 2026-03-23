@@ -1,4 +1,5 @@
 """GET /api/health — system status including component availability."""
+
 from __future__ import annotations
 
 from datetime import datetime, timezone

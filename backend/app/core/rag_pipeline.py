@@ -1,6 +1,8 @@
 """RAG pipeline: multi-query retrieval + LLM-based re-ranking."""
+
 from __future__ import annotations
-import asyncio, logging
+import asyncio
+import logging
 from dataclasses import dataclass, field
 from typing import Any
 
@@ -21,6 +23,7 @@ Document chunk:
 {chunk}
 
 Relevance score (0.0-1.0):"""
+
 
 @dataclass
 class RetrievalResult:
@@ -47,6 +50,7 @@ class RetrievalResult:
             "matched_queries": self.matched_queries,
         }
 
+
 @dataclass
 class QueryBundle:
     original: str
@@ -59,6 +63,7 @@ class QueryBundle:
             if q and q not in seen:
                 seen.append(q)
         return seen
+
 
 class RAGPipeline:
     def __init__(
@@ -97,10 +102,18 @@ class RAGPipeline:
             results.sort(key=lambda r: r.relevance_score, reverse=True)
         return results[: self._top_k]
 
-    def _build_query_bundle(self, query: str, symptoms: list[LexiconMatch]) -> QueryBundle:
+    def _build_query_bundle(
+        self, query: str, symptoms: list[LexiconMatch]
+    ) -> QueryBundle:
         original = query.strip()
-        msa_terms = list(dict.fromkeys(m.msa_equivalent for m in symptoms if m.msa_equivalent))
-        english_terms = list(dict.fromkeys(m.english_medical_term for m in symptoms if m.english_medical_term))
+        msa_terms = list(
+            dict.fromkeys(m.msa_equivalent for m in symptoms if m.msa_equivalent)
+        )
+        english_terms = list(
+            dict.fromkeys(
+                m.english_medical_term for m in symptoms if m.english_medical_term
+            )
+        )
         return QueryBundle(
             original=original,
             msa=" ".join(msa_terms) if msa_terms else original,
@@ -111,17 +124,21 @@ class RAGPipeline:
         self, bundle: QueryBundle, filters: dict[str, Any] | None
     ) -> list[SearchResult]:
         queries = bundle.all_queries()
-        results_per_query: list[list[SearchResult]] = await asyncio.gather(*[
-            self._store.search(q, top_k=self._candidates_per_query, filters=filters)
-            for q in queries
-        ])
+        results_per_query: list[list[SearchResult]] = await asyncio.gather(
+            *[
+                self._store.search(q, top_k=self._candidates_per_query, filters=filters)
+                for q in queries
+            ]
+        )
         best: dict[str, SearchResult] = {}
         for results in results_per_query:
             for r in results:
                 if r.chunk_id not in best or r.score > best[r.chunk_id].score:
                     best[r.chunk_id] = r
         deduped = sorted(best.values(), key=lambda r: r.score, reverse=True)
-        logger.info("Retrieved %d unique candidates from %d queries", len(deduped), len(queries))
+        logger.info(
+            "Retrieved %d unique candidates from %d queries", len(deduped), len(queries)
+        )
         return deduped
 
     async def _rerank_candidates(
@@ -141,11 +158,17 @@ class RAGPipeline:
             rerank_score = max(0.0, min(1.0, float(resp.text.strip().split()[0])))
         except Exception as exc:
             logger.warning("Re-ranker failed for %s: %s", candidate.chunk_id, exc)
-        final = (0.3 * candidate.score + 0.7 * rerank_score) if rerank_score >= 0 else candidate.score
+        final = (
+            (0.3 * candidate.score + 0.7 * rerank_score)
+            if rerank_score >= 0
+            else candidate.score
+        )
         return self._to_retrieval(candidate, rerank_score, final)
 
     @staticmethod
-    def _to_retrieval(r: SearchResult, rerank_score: float, final_score: float | None = None) -> RetrievalResult:
+    def _to_retrieval(
+        r: SearchResult, rerank_score: float, final_score: float | None = None
+    ) -> RetrievalResult:
         meta = r.metadata
         return RetrievalResult(
             chunk_id=r.chunk_id,

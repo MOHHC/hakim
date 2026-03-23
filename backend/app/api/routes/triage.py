@@ -1,4 +1,5 @@
 """POST /api/triage — structured triage without conversation context."""
+
 from __future__ import annotations
 
 from typing import Annotated

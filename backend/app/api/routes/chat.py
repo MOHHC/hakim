@@ -1,4 +1,5 @@
 """POST /api/chat — conversational triage with SSE streaming."""
+
 from __future__ import annotations
 
 import json
@@ -119,7 +120,9 @@ async def chat(
 
         # Run streaming triage pipeline — yields triage_classified → chunk×N → complete
         try:
-            async for event in engine.triage_stream(request.message, response_script=request.response_script):
+            async for event in engine.triage_stream(
+                request.message, response_script=request.response_script
+            ):
                 if event["type"] == "complete":
                     # Apply guardrail disclaimer post-processing to the complete event
                     is_emergency = event.get("triage_level") == "RED"

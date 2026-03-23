@@ -67,6 +67,7 @@ class LLMError(Exception):
 # Response Cache — in-memory LRU with TTL
 # ---------------------------------------------------------------------------
 
+
 class _ResponseCache:
     """Simple in-memory LRU cache with TTL for non-streaming LLM responses."""
 
@@ -76,11 +77,15 @@ class _ResponseCache:
         self._store: OrderedDict[str, tuple[float, LLMResponse]] = OrderedDict()
 
     @staticmethod
-    def _make_key(prompt: str, system_prompt: str, temperature: float, max_tokens: int) -> str:
+    def _make_key(
+        prompt: str, system_prompt: str, temperature: float, max_tokens: int
+    ) -> str:
         raw = f"{system_prompt}||{prompt}||{temperature}||{max_tokens}"
         return hashlib.sha256(raw.encode()).hexdigest()
 
-    def get(self, prompt: str, system_prompt: str, temperature: float, max_tokens: int) -> LLMResponse | None:
+    def get(
+        self, prompt: str, system_prompt: str, temperature: float, max_tokens: int
+    ) -> LLMResponse | None:
         key = self._make_key(prompt, system_prompt, temperature, max_tokens)
         entry = self._store.get(key)
         if entry is None:
@@ -94,7 +99,14 @@ class _ResponseCache:
         logger.debug("Cache HIT for prompt hash %s…", key[:12])
         return resp
 
-    def put(self, prompt: str, system_prompt: str, temperature: float, max_tokens: int, response: LLMResponse) -> None:
+    def put(
+        self,
+        prompt: str,
+        system_prompt: str,
+        temperature: float,
+        max_tokens: int,
+        response: LLMResponse,
+    ) -> None:
         # Only cache deterministic-ish responses (low temperature)
         if temperature > 0.2:
             return
@@ -109,6 +121,7 @@ class _ResponseCache:
 # ---------------------------------------------------------------------------
 # Rate Limiter — token bucket for Gemini free tier (15 RPM)
 # ---------------------------------------------------------------------------
+
 
 class _RateLimiter:
     """Async token bucket rate limiter."""
@@ -133,6 +146,7 @@ class _RateLimiter:
 # Circuit Breaker — skip Gemini entirely after quota/auth errors
 # ---------------------------------------------------------------------------
 
+
 class _CircuitBreaker:
     """Skip a provider for a cooldown period after fatal errors (429, 401, 403)."""
 
@@ -142,7 +156,9 @@ class _CircuitBreaker:
 
     def trip(self) -> None:
         self._tripped_at = time.monotonic()
-        logger.warning("Circuit breaker tripped — skipping provider for %.0fs", self._cooldown)
+        logger.warning(
+            "Circuit breaker tripped — skipping provider for %.0fs", self._cooldown
+        )
 
     def is_open(self) -> bool:
         if self._tripped_at == 0.0:
@@ -195,7 +211,9 @@ class LLMClient:
                 _cache.put(prompt, system_prompt, temperature, max_tokens, resp)
                 return resp
             except LLMError as exc:
-                logger.warning("Provider %s failed: %s — trying next", provider_cfg.name, exc)
+                logger.warning(
+                    "Provider %s failed: %s — trying next", provider_cfg.name, exc
+                )
 
         raise LLMError("All providers failed.")
 
@@ -210,27 +228,47 @@ class LLMClient:
         last_exc: Exception | None = None
         for attempt in range(self.MAX_RETRIES):
             try:
-                return await self._call_provider(cfg, prompt, system_prompt, temperature, max_tokens)
+                return await self._call_provider(
+                    cfg, prompt, system_prompt, temperature, max_tokens
+                )
             except httpx.HTTPStatusError as exc:
                 last_exc = exc
                 # Don't retry on 429 (quota) or 401/403 (auth) — fail fast to next provider
                 if exc.response.status_code in (401, 403, 429):
-                    logger.warning("%s returned %d, skipping retries", cfg.name, exc.response.status_code)
+                    logger.warning(
+                        "%s returned %d, skipping retries",
+                        cfg.name,
+                        exc.response.status_code,
+                    )
                     if cfg.name == "gemini":
                         _gemini_breaker.trip()
                     break
                 if attempt < self.MAX_RETRIES - 1:
-                    delay = self.RETRY_BASE_DELAY * (2 ** attempt)
-                    logger.debug("%s attempt %d failed, retrying in %.1fs: %s", cfg.name, attempt + 1, delay, exc)
+                    delay = self.RETRY_BASE_DELAY * (2**attempt)
+                    logger.debug(
+                        "%s attempt %d failed, retrying in %.1fs: %s",
+                        cfg.name,
+                        attempt + 1,
+                        delay,
+                        exc,
+                    )
                     await asyncio.sleep(delay)
             except (httpx.RequestError, LLMError) as exc:
                 last_exc = exc
                 if attempt < self.MAX_RETRIES - 1:
-                    delay = self.RETRY_BASE_DELAY * (2 ** attempt)
-                    logger.debug("%s attempt %d failed, retrying in %.1fs: %s", cfg.name, attempt + 1, delay, exc)
+                    delay = self.RETRY_BASE_DELAY * (2**attempt)
+                    logger.debug(
+                        "%s attempt %d failed, retrying in %.1fs: %s",
+                        cfg.name,
+                        attempt + 1,
+                        delay,
+                        exc,
+                    )
                     await asyncio.sleep(delay)
 
-        raise LLMError(f"{cfg.name} failed after {self.MAX_RETRIES} attempts: {last_exc}") from last_exc
+        raise LLMError(
+            f"{cfg.name} failed after {self.MAX_RETRIES} attempts: {last_exc}"
+        ) from last_exc
 
     async def _call_provider(
         self,
@@ -247,9 +285,13 @@ class LLMClient:
         start = time.monotonic()
 
         if cfg.name == "gemini":
-            response = await self._call_gemini(cfg, prompt, system_prompt, temperature, max_tokens)
+            response = await self._call_gemini(
+                cfg, prompt, system_prompt, temperature, max_tokens
+            )
         else:
-            response = await self._call_openai_compat(cfg, prompt, system_prompt, temperature, max_tokens)
+            response = await self._call_openai_compat(
+                cfg, prompt, system_prompt, temperature, max_tokens
+            )
 
         latency_ms = (time.monotonic() - start) * 1000
         response.latency_ms = latency_ms
@@ -305,7 +347,9 @@ class LLMClient:
                 candidate_text = part["text"]
                 break
         if not candidate_text:
-            raise LLMError(f"Gemini returned no text. Response: {json.dumps(data)[:300]}")
+            raise LLMError(
+                f"Gemini returned no text. Response: {json.dumps(data)[:300]}"
+            )
 
         usage = data.get("usageMetadata", {})
         prompt_tokens = usage.get("promptTokenCount", 0)
@@ -396,7 +440,9 @@ class LLMClient:
                 if cfg.name == "gemini":
                     await _gemini_limiter.acquire()
 
-                async for chunk in stream_method(cfg, prompt, system_prompt, temperature, max_tokens):
+                async for chunk in stream_method(
+                    cfg, prompt, system_prompt, temperature, max_tokens
+                ):
                     yield chunk
                     accumulated.append(chunk)
                     yielded = True
@@ -412,10 +458,17 @@ class LLMClient:
                 # Trip circuit breaker on quota/auth errors
                 if cfg.name == "gemini" and exc.response.status_code in (401, 403, 429):
                     _gemini_breaker.trip()
-                logger.warning("%s streaming failed (HTTP %d): %s", cfg.name, exc.response.status_code, exc)
+                logger.warning(
+                    "%s streaming failed (HTTP %d): %s",
+                    cfg.name,
+                    exc.response.status_code,
+                    exc,
+                )
                 if yielded:
                     obs.log_stream_generation(
-                        provider=cfg.name, model=cfg.model, prompt=prompt,
+                        provider=cfg.name,
+                        model=cfg.model,
+                        prompt=prompt,
                         response="".join(accumulated),
                         latency_ms=(time.monotonic() - start) * 1000,
                     )
@@ -477,7 +530,11 @@ class LLMClient:
                     try:
                         data = json.loads(data_str)
                         # Gemini 2.5+ may have thinking parts without text
-                        parts = data.get("candidates", [{}])[0].get("content", {}).get("parts", [])
+                        parts = (
+                            data.get("candidates", [{}])[0]
+                            .get("content", {})
+                            .get("parts", [])
+                        )
                         for part in parts:
                             text = part.get("text", "")
                             if text:

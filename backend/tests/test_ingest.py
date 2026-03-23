@@ -6,8 +6,6 @@ from pathlib import Path
 import pytest
 
 from app.knowledge.ingest import (
-    CHUNK_TOKENS,
-    OVERLAP_TOKENS,
     DocumentChunk,
     IngestResult,
     _count_tokens,
@@ -24,6 +22,7 @@ from app.knowledge.ingest import (
 # ---------------------------------------------------------------------------
 # Fixtures
 # ---------------------------------------------------------------------------
+
 
 @pytest.fixture()
 def enc():
@@ -72,6 +71,7 @@ clinical suspicion.
 # Token counting
 # ---------------------------------------------------------------------------
 
+
 def test_count_tokens_basic(enc):
     count = _count_tokens("hello world", enc)
     assert count > 0
@@ -90,6 +90,7 @@ def test_count_tokens_empty(enc):
 # ---------------------------------------------------------------------------
 # Category inference
 # ---------------------------------------------------------------------------
+
 
 def test_infer_category_cardiovascular():
     assert _infer_category("cardiology_guide.pdf") == "cardiovascular"
@@ -115,6 +116,7 @@ def test_infer_category_fallback():
 # Section title extraction
 # ---------------------------------------------------------------------------
 
+
 def test_extract_section_title_markdown():
     text = "# Introduction\nSome content here."
     title = _extract_section_title(text, char_offset=20)
@@ -138,6 +140,7 @@ def test_extract_section_title_picks_nearest():
 # Text splitting
 # ---------------------------------------------------------------------------
 
+
 def test_split_text_produces_chunks(enc):
     long_text = "This is a medical sentence about symptoms. " * 200
     spans = _split_text(long_text, enc, chunk_tokens=100, overlap_tokens=10)
@@ -159,8 +162,8 @@ def test_split_text_overlap(enc):
     spans = _split_text(text, enc, chunk_tokens=20, overlap_tokens=5)
     assert len(spans) >= 2
     # Overlapping chunks should share some text
-    first_text = text[spans[0][0]:spans[0][1]]
-    second_text = text[spans[1][0]:spans[1][1]]
+    first_text = text[spans[0][0] : spans[0][1]]
+    second_text = text[spans[1][0] : spans[1][1]]
     # The tail of chunk 1 should appear at the start of chunk 2
     overlap_text = first_text[-30:]
     assert overlap_text[:10] in second_text or second_text[:10] in first_text
@@ -176,6 +179,7 @@ def test_split_text_single_chunk_for_short_text(enc):
 # File extraction
 # ---------------------------------------------------------------------------
 
+
 def test_extract_text_from_txt(tmp_path):
     f = tmp_path / "test.txt"
     f.write_text("Hello medical world.", encoding="utf-8")
@@ -189,6 +193,7 @@ def test_extract_text_from_txt(tmp_path):
 # ---------------------------------------------------------------------------
 # ingest_file
 # ---------------------------------------------------------------------------
+
 
 def test_ingest_file_txt(tmp_source, enc):
     doc = tmp_source / "cardiology_intro.txt"
@@ -240,8 +245,11 @@ def test_ingest_file_md(tmp_source, enc):
 # ingest_directory
 # ---------------------------------------------------------------------------
 
+
 def test_ingest_directory_writes_json(tmp_source, tmp_output, enc):
-    (tmp_source / "cardiology_notes.txt").write_text(SAMPLE_MEDICAL_TEXT, encoding="utf-8")
+    (tmp_source / "cardiology_notes.txt").write_text(
+        SAMPLE_MEDICAL_TEXT, encoding="utf-8"
+    )
     result = ingest_directory(tmp_source, tmp_output)
     assert isinstance(result, IngestResult)
     assert result.files_processed == 1
@@ -251,7 +259,9 @@ def test_ingest_directory_writes_json(tmp_source, tmp_output, enc):
 
 
 def test_ingest_directory_json_structure(tmp_source, tmp_output):
-    (tmp_source / "symptoms_guide.txt").write_text(SAMPLE_MEDICAL_TEXT, encoding="utf-8")
+    (tmp_source / "symptoms_guide.txt").write_text(
+        SAMPLE_MEDICAL_TEXT, encoding="utf-8"
+    )
     result = ingest_directory(tmp_source, tmp_output)
     data = json.loads(Path(result.output_path).read_text(encoding="utf-8"))
     assert "metadata" in data
@@ -261,11 +271,23 @@ def test_ingest_directory_json_structure(tmp_source, tmp_output):
 
 
 def test_ingest_directory_chunk_fields(tmp_source, tmp_output):
-    (tmp_source / "digestive_health.txt").write_text(SAMPLE_MEDICAL_TEXT, encoding="utf-8")
+    (tmp_source / "digestive_health.txt").write_text(
+        SAMPLE_MEDICAL_TEXT, encoding="utf-8"
+    )
     ingest_directory(tmp_source, tmp_output)
     data = json.loads((tmp_output / "chunks.json").read_text(encoding="utf-8"))
     chunk = data["chunks"][0]
-    for field in ("chunk_id", "source_name", "page_number", "section_title", "medical_category", "text", "token_count", "char_start", "char_end"):
+    for field in (
+        "chunk_id",
+        "source_name",
+        "page_number",
+        "section_title",
+        "medical_category",
+        "text",
+        "token_count",
+        "char_start",
+        "char_end",
+    ):
         assert field in chunk, f"Missing field: {field}"
 
 

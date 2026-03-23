@@ -4,6 +4,7 @@ Each factory is a plain callable so FastAPI's ``Depends()`` system can
 inject them into route handlers, and tests can override them with
 ``app.dependency_overrides``.
 """
+
 from __future__ import annotations
 
 from app.core.arabic_processor import ArabicProcessor

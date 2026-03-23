@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef } from 'react'
+import { useState, useCallback, useRef, useMemo } from 'react'
 import type { Message, Conversation, TriageResult, SSEEvent } from '../types'
 import { useLocalStorage } from './useLocalStorage'
 import { streamChat } from '../api/client'
@@ -17,7 +17,7 @@ export function useChat(languagePreference: string = 'auto', responseScript: str
   const abortRef = useRef<AbortController | null>(null)
 
   const activeConversation = conversations.find((c) => c.id === activeId) ?? null
-  const messages = activeConversation?.messages ?? []
+  const messages = useMemo(() => activeConversation?.messages ?? [], [activeConversation?.messages])
 
   /* ---- helpers to update a specific message in a conversation ---- */
   const patchMessage = useCallback(

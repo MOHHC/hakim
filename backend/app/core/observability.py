@@ -4,6 +4,7 @@ All public functions are safe to call unconditionally — they are silent no-ops
 when LANGFUSE_PUBLIC_KEY / LANGFUSE_SECRET_KEY are not configured, or when the
 langfuse package is not installed.  Triage must never fail due to observability.
 """
+
 from __future__ import annotations
 
 import logging

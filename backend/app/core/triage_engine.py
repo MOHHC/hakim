@@ -1,4 +1,5 @@
 """Triage engine: multi-step triage agent for Lebanese Arabic medical queries."""
+
 from __future__ import annotations
 
 import json
@@ -23,19 +24,27 @@ logger = logging.getLogger(__name__)
 # Stored as plain substrings; _EMERGENCY_RE handles case-insensitive matching.
 _EMERGENCY_SUBSTRINGS = [
     # Arabic critical presentations (unicode literals so the file stays ASCII-safe)
-    "\u0635\u0639\u0648\u0628\u0629 \u062a\u0646\u0641\u0633",    # difficulty breathing
-    "\u0636\u064a\u0642 \u062a\u0646\u0641\u0633",                 # breath tightness
-    "\u0641\u0642\u062f\u0627\u0646 \u0648\u0639\u064a",           # loss of consciousness
-    "\u0646\u0632\u064a\u0641 \u0634\u062f\u064a\u062f",           # severe bleeding
-    "\u062c\u0644\u0637\u0629",                                     # clot/stroke
-    "\u0633\u0643\u062a\u0629",                                     # stroke (sukta)
-    "\u0634\u0644\u0644",                                           # paralysis
-    "\u062a\u0634\u0646\u062c",                                     # convulsion
+    "\u0635\u0639\u0648\u0628\u0629 \u062a\u0646\u0641\u0633",  # difficulty breathing
+    "\u0636\u064a\u0642 \u062a\u0646\u0641\u0633",  # breath tightness
+    "\u0641\u0642\u062f\u0627\u0646 \u0648\u0639\u064a",  # loss of consciousness
+    "\u0646\u0632\u064a\u0641 \u0634\u062f\u064a\u062f",  # severe bleeding
+    "\u062c\u0644\u0637\u0629",  # clot/stroke
+    "\u0633\u0643\u062a\u0629",  # stroke (sukta)
+    "\u0634\u0644\u0644",  # paralysis
+    "\u062a\u0634\u0646\u062c",  # convulsion
     # Franco-Arab / English
-    "chest pain", "cant breathe", "can't breathe",
-    "shortness of breath", "heart attack",
-    "lost consciousness", "unconscious", "heavy bleeding", "stroke",
-    "ta3ab ktir bnafs", "waja3 sadr ktir", "ma 3am tnaffas",
+    "chest pain",
+    "cant breathe",
+    "can't breathe",
+    "shortness of breath",
+    "heart attack",
+    "lost consciousness",
+    "unconscious",
+    "heavy bleeding",
+    "stroke",
+    "ta3ab ktir bnafs",
+    "waja3 sadr ktir",
+    "ma 3am tnaffas",
 ]
 
 _EMERGENCY_RE = re.compile(
@@ -47,9 +56,9 @@ _EMERGENCY_RE = re.compile(
 # ---------------------------------------------------------------------------
 
 _REFUSAL_SUBSTRINGS = [
-    "\u0631\u0636\u064a\u0639",                                                   # infant
-    "\u0646\u062a\u064a\u062c\u0629 \u062a\u062d\u0644\u064a\u0644",             # lab result
-    "\u062a\u062d\u0627\u0644\u064a\u0644 \u0637\u0644\u0639\u062a",             # results came out
+    "\u0631\u0636\u064a\u0639",  # infant
+    "\u0646\u062a\u064a\u062c\u0629 \u062a\u062d\u0644\u064a\u0644",  # lab result
+    "\u062a\u062d\u0627\u0644\u064a\u0644 \u0637\u0644\u0639\u062a",  # results came out
 ]
 _REFUSAL_RE = re.compile(
     "|".join(re.escape(s) for s in _REFUSAL_SUBSTRINGS), re.IGNORECASE
@@ -101,11 +110,11 @@ _TRIAGE_PROMPT = (
     "IMPORTANT: The values inside possible_conditions and recommended_actions arrays MUST be written in {output_script}. "
     "If output script is Franco-Arab, use ONLY Latin letters and numbers (e.g., 'waja3 batn' not 'وجع بطن', 'ru7 3and l doctor' not 'روح عند الطبيب').\n"
     "Respond ONLY in valid JSON, no extra text:\n"
-    '{{\n'
+    "{{\n"
     '  "triage_level": "GREEN" or "YELLOW" or "RED",\n'
     '  "possible_conditions": ["condition 1", "condition 2"],\n'
     '  "recommended_actions": ["action 1", "action 2"]\n'
-    '}}\n\n'
+    "}}\n\n"
     "Criteria:\n"
     "- RED   : Emergency -- go to ER immediately\n"
     "- YELLOW: See a doctor within 24-48 h\n"
@@ -113,10 +122,9 @@ _TRIAGE_PROMPT = (
     "JSON:"
 )
 
-_RESPONSE_PROMPT = 'Write a warm response in Lebanese colloquial Arabic (3ammiye) using Arabic script only. NOT Latin letters, NOT Modern Standard Arabic.\n\nPatient symptoms: {symptoms_text}\nTriage level: {triage_level}\nPossible conditions: {conditions}\nRecommended actions: {actions}\n\nStyle examples (match this natural Lebanese tone):\nهلق هيدا الوجع بالضهر ممكن يكون من العضلات أو من شي تاني. حاول تريّح شوي وإذا ضل أكتر من يومين روح عالدكتور.\nيي شو صعبة هالحالة. ممكن يكون عندك التهاب أو شي متل هيك. لازم تروح تتفحص بأقرب وقت.\n\nRules:\n- Talk like a real Lebanese friend giving advice, natural and direct\n- Use Lebanese words: شو، هيدا/هيدي، كتير، مش، رح، عم بـ، متل، يعني، بس، تا، هيك، هلق\n- Start with empathy then get to the point\n- Say ممكن يكون before conditions (never diagnose)\n- Be specific about what to do next (روح عالدكتور، خود راحة، etc.)\n- No medication names or dosages\n- Do NOT add any disclaimer or warning, the app handles that\n- 2-3 sentences max, keep it concise\n\nالجواب:'
+_RESPONSE_PROMPT = "Write a warm response in Lebanese colloquial Arabic (3ammiye) using Arabic script only. NOT Latin letters, NOT Modern Standard Arabic.\n\nPatient symptoms: {symptoms_text}\nTriage level: {triage_level}\nPossible conditions: {conditions}\nRecommended actions: {actions}\n\nStyle examples (match this natural Lebanese tone):\nهلق هيدا الوجع بالضهر ممكن يكون من العضلات أو من شي تاني. حاول تريّح شوي وإذا ضل أكتر من يومين روح عالدكتور.\nيي شو صعبة هالحالة. ممكن يكون عندك التهاب أو شي متل هيك. لازم تروح تتفحص بأقرب وقت.\n\nRules:\n- Talk like a real Lebanese friend giving advice, natural and direct\n- Use Lebanese words: شو، هيدا/هيدي، كتير، مش، رح، عم بـ، متل، يعني، بس، تا، هيك، هلق\n- Start with empathy then get to the point\n- Say ممكن يكون before conditions (never diagnose)\n- Be specific about what to do next (روح عالدكتور، خود راحة، etc.)\n- No medication names or dosages\n- Do NOT add any disclaimer or warning, the app handles that\n- 2-3 sentences max, keep it concise\n\nالجواب:"
 
 _RESPONSE_PROMPT_FRANCO = "CRITICAL INSTRUCTION: Write ONLY in Franco-Arab (Latin letters + numbers). ZERO Arabic script characters allowed.\n\nPatient symptoms: {symptoms_text}\nTriage level: {triage_level}\nPossible conditions: {conditions}\nRecommended actions: {actions}\n\nFranco-Arab examples (copy this EXACT style — Latin letters only, natural Lebanese WhatsApp texting):\n\nExample 1: hala2 hayda l waja3 bel daher momken ykun men l 3adalat aw men l a3sab. 7awel tree7 shway w 7ot shi sakhne 3al mante2a, w eza dal aktar men yawmen ru7 3and doctor.\n\nExample 2: yii shu sa3be, 7asse fike t3abene. momken ykun 3andak eltiheb aw shi mtel hek. lazem tru7 tetfa7as 3and tabib b a2rab wa2et ta yshufak.\n\nExample 3: ma t2al2al ktir bas lazem tentebi. hayda l waja3 bel sadr ma3 dawkha momken ykun men l daght aw men shi tene. ru7 3al taware2 hala2 a7san.\n\nExample 4: ahla shi tree7 3al se7a hala2 w shrab may ktir. l 7arara ma3 l su3al momken ykun rasheh aw flu. eza l 7arara telet faw2 l 38 ru7 3and l doctor.\n\nFranco number guide: 2=hamza (hala2, a2rab), 3=ain (3and, ya3ne, 3ein), 5=kha (5abar), 7=strong H (7arara, ru7), 8=ghain (8ayem)\n\nRules:\n- ONLY Latin letters (a-z) and numbers (2,3,5,7,8). NO Arabic script AT ALL.\n- Write like a Lebanese person texting on WhatsApp — casual, warm, direct\n- Start with empathy then give practical advice\n- Say 'momken ykun' before conditions (never diagnose)\n- Be specific: ru7 3al doctor, khod ra7a, shrab may, etc.\n- No medication names or dosages\n- No disclaimer or warning\n- 2-3 sentences max\n\nel jaweb:"
-
 
 
 _CLARIFICATION_PROMPT = (
@@ -145,8 +153,12 @@ _EMERGENCY_DISCLAIMER = (
     "\U0001f6a8 \u0647\u0627\u0644\u0623\u0639\u0631\u0627\u0636 \u062e\u0637\u064a\u0631\u0629 \u2014 "
     "\u0631\u0648\u062d \u0639\u0627\u0644\u0637\u0648\u0627\u0631\u0626 \u0647\u0644\u0642 \u0623\u0648 \u0627\u062a\u0635\u0644 140!"
 )
-_DISCLAIMER_FRANCO = "haydi l ma3lumet ma bteghne 3an l doctor. eza l wade3 sa2, ru7 3al tabib."
-_EMERGENCY_DISCLAIMER_FRANCO = "hal a3rad 5atire — ru7 3al taware2 hala2 aw ettesel 140!"
+_DISCLAIMER_FRANCO = (
+    "haydi l ma3lumet ma bteghne 3an l doctor. eza l wade3 sa2, ru7 3al tabib."
+)
+_EMERGENCY_DISCLAIMER_FRANCO = (
+    "hal a3rad 5atire — ru7 3al taware2 hala2 aw ettesel 140!"
+)
 
 
 # ---------------------------------------------------------------------------
@@ -243,7 +255,9 @@ class TriageEngine:
                 if s.english_medical_term or s.msa_equivalent
             ]
             symptoms_text = ", ".join(symptom_labels) if symptom_labels else query
-            logger.info("Step 1 -- extracted %d symptoms: %s", len(symptoms), symptom_labels)
+            logger.info(
+                "Step 1 -- extracted %d symptoms: %s", len(symptoms), symptom_labels
+            )
 
             # Safety gate: refuse out-of-scope cases immediately
             if _REFUSAL_RE.search(query):
@@ -268,11 +282,14 @@ class TriageEngine:
                 logger.info("Step 1b -- emergency detected, fast-path RED")
                 obs.set_step("emergency-response")
                 result = await self._emergency_response(symptoms_text, total_tokens)
-                obs.end_trace(trace, output={
-                    "triage_level": "RED",
-                    "emergency_fast_path": True,
-                    "total_tokens": result.total_tokens,
-                })
+                obs.end_trace(
+                    trace,
+                    output={
+                        "triage_level": "RED",
+                        "emergency_fast_path": True,
+                        "total_tokens": result.total_tokens,
+                    },
+                )
                 return result
 
             # Step 2: Clarification -- only when genuinely vague
@@ -282,7 +299,9 @@ class TriageEngine:
                 clarify_resp = await self._llm.generate(
                     prompt=_CLARIFICATION_PROMPT.format(
                         query=query,
-                        symptoms_text=symptoms_text if symptom_labels else "nothing specific",
+                        symptoms_text=symptoms_text
+                        if symptom_labels
+                        else "nothing specific",
                     ),
                     system_prompt=_SYSTEM_PROMPT,
                     temperature=0.4,
@@ -301,7 +320,9 @@ class TriageEngine:
                     clarification_question=q,
                     total_tokens=total_tokens,
                 )
-                obs.end_trace(trace, output={"triage_level": "GREEN", "needs_clarification": True})
+                obs.end_trace(
+                    trace, output={"triage_level": "GREEN", "needs_clarification": True}
+                )
                 return result
 
             # Step 3: Knowledge retrieval
@@ -314,13 +335,19 @@ class TriageEngine:
             # Step 4: Triage classification
             obs.set_step("classification")
             classify_resp = await self._llm.generate(
-                prompt=_TRIAGE_PROMPT.format(symptoms_text=symptoms_text, context=context, output_script="Lebanese Arabic"),
+                prompt=_TRIAGE_PROMPT.format(
+                    symptoms_text=symptoms_text,
+                    context=context,
+                    output_script="Lebanese Arabic",
+                ),
                 system_prompt=_SYSTEM_PROMPT,
                 temperature=0.1,
                 max_tokens=2048,
             )
             total_tokens += classify_resp.total_tokens
-            triage_level, conditions, actions = self._parse_triage_json(classify_resp.text)
+            triage_level, conditions, actions = self._parse_triage_json(
+                classify_resp.text
+            )
             logger.info("Step 4 -- level=%s | conditions=%s", triage_level, conditions)
 
             # Step 5: Response generation in Lebanese Arabic
@@ -338,7 +365,11 @@ class TriageEngine:
             )
             total_tokens += response_resp.total_tokens
 
-            disclaimer = _EMERGENCY_DISCLAIMER if triage_level == TriageLevel.RED else _DISCLAIMER
+            disclaimer = (
+                _EMERGENCY_DISCLAIMER
+                if triage_level == TriageLevel.RED
+                else _DISCLAIMER
+            )
             result = TriageResult(
                 triage_level=triage_level,
                 response_text=response_resp.text.strip(),
@@ -348,12 +379,15 @@ class TriageEngine:
                 disclaimer=disclaimer,
                 total_tokens=total_tokens,
             )
-            obs.end_trace(trace, output={
-                "triage_level": triage_level.value,
-                "possible_conditions": conditions,
-                "total_tokens": total_tokens,
-                "sources_count": len(retrieval_results),
-            })
+            obs.end_trace(
+                trace,
+                output={
+                    "triage_level": triage_level.value,
+                    "possible_conditions": conditions,
+                    "total_tokens": total_tokens,
+                    "sources_count": len(retrieval_results),
+                },
+            )
             return result
 
         except Exception as exc:
@@ -428,7 +462,10 @@ class TriageEngine:
                 "type": "triage_classified",
                 "triage_level": "RED",
                 "possible_conditions": ["emergency"],
-                "recommended_actions": ["call ambulance immediately — 140", "go to ER now"],
+                "recommended_actions": [
+                    "call ambulance immediately — 140",
+                    "go to ER now",
+                ],
                 "needs_clarification": False,
             }
             async for chunk in self._llm.generate_stream(
@@ -447,24 +484,35 @@ class TriageEngine:
                 "type": "complete",
                 "triage_level": "RED",
                 "possible_conditions": ["emergency"],
-                "recommended_actions": ["call ambulance immediately — 140", "go to ER now"],
+                "recommended_actions": [
+                    "call ambulance immediately — 140",
+                    "go to ER now",
+                ],
                 "sources": [],
                 "disclaimer": self._get_disclaimer(response_script, emergency=True),
                 "needs_clarification": False,
                 "follow_up_question": None,
             }
-            obs.end_trace(trace, output={"triage_level": "RED", "emergency_fast_path": True})
+            obs.end_trace(
+                trace, output={"triage_level": "RED", "emergency_fast_path": True}
+            )
             yield complete_event
             return
 
         # Step 2: Clarification
         if len(symptoms) == 0 and len(query.split()) < 2:
             obs.set_step("clarification")
-            clarify_prompt = _CLARIFICATION_PROMPT_FRANCO if response_script == "franco" else _CLARIFICATION_PROMPT
+            clarify_prompt = (
+                _CLARIFICATION_PROMPT_FRANCO
+                if response_script == "franco"
+                else _CLARIFICATION_PROMPT
+            )
             clarify_resp = await self._llm.generate(
                 prompt=clarify_prompt.format(
                     query=query,
-                    symptoms_text=symptoms_text if symptom_labels else "nothing specific",
+                    symptoms_text=symptoms_text
+                    if symptom_labels
+                    else "nothing specific",
                 ),
                 system_prompt=self._get_system_prompt(response_script),
                 temperature=0.4,
@@ -490,7 +538,9 @@ class TriageEngine:
                 "needs_clarification": True,
                 "follow_up_question": q,
             }
-            obs.end_trace(trace, output={"triage_level": "GREEN", "needs_clarification": True})
+            obs.end_trace(
+                trace, output={"triage_level": "GREEN", "needs_clarification": True}
+            )
             yield complete_event
             return
 
@@ -503,7 +553,13 @@ class TriageEngine:
         # Step 4: Classification
         obs.set_step("classification")
         classify_resp = await self._llm.generate(
-            prompt=_TRIAGE_PROMPT.format(symptoms_text=symptoms_text, context=context, output_script="Franco-Arab (Latin letters)" if response_script == "franco" else "Lebanese Arabic"),
+            prompt=_TRIAGE_PROMPT.format(
+                symptoms_text=symptoms_text,
+                context=context,
+                output_script="Franco-Arab (Latin letters)"
+                if response_script == "franco"
+                else "Lebanese Arabic",
+            ),
             system_prompt=_SYSTEM_PROMPT,
             temperature=0.1,
             max_tokens=2048,
@@ -548,12 +604,15 @@ class TriageEngine:
             "needs_clarification": False,
             "follow_up_question": None,
         }
-        obs.end_trace(trace, output={
-            "triage_level": triage_level.value,
-            "possible_conditions": conditions,
-            "total_tokens": total_tokens,
-            "sources_count": len(retrieval_results),
-        })
+        obs.end_trace(
+            trace,
+            output={
+                "triage_level": triage_level.value,
+                "possible_conditions": conditions,
+                "total_tokens": total_tokens,
+                "sources_count": len(retrieval_results),
+            },
+        )
         yield complete_event
 
     # ------------------------------------------------------------------
@@ -646,7 +705,5 @@ class TriageEngine:
             actions: list[str] = data.get("recommended_actions", [])
             return level, conditions[:5], actions[:5]
         except Exception as exc:
-            logger.warning(
-                "Failed to parse triage JSON: %s | text=%r", exc, text[:200]
-            )
+            logger.warning("Failed to parse triage JSON: %s | text=%r", exc, text[:200])
             return default_level, [], []

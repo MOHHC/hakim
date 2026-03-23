@@ -5,6 +5,7 @@ Two main entry points:
   check_response(text)    -> GuardrailResult  (post-LLM output gate)
   sanitize_response(text) -> str              (strip prohibited content)
 """
+
 from __future__ import annotations
 
 import re
@@ -69,49 +70,70 @@ class _RedFlagPattern(NamedTuple):
 # ---- Scope-limit substrings -----------------------------------------------
 
 _INFANT_SUBSTRINGS = [
-    "\u0631\u0636\u064a\u0639",         # رضيع
-    "\u0631\u0636\u064a\u0639\u0629",   # رضيعة
-    "infant", "newborn",
-    "2 months old", "6 months old", "1 year old", "18 months old",
-    "under 2 years", "less than 2 years", "baby under 2",
+    "\u0631\u0636\u064a\u0639",  # رضيع
+    "\u0631\u0636\u064a\u0639\u0629",  # رضيعة
+    "infant",
+    "newborn",
+    "2 months old",
+    "6 months old",
+    "1 year old",
+    "18 months old",
+    "under 2 years",
+    "less than 2 years",
+    "baby under 2",
 ]
 _INFANT_RE = re.compile(
     "|".join(re.escape(s) for s in _INFANT_SUBSTRINGS), re.IGNORECASE
 )
 
 _PREGNANCY_SUBSTRINGS = [
-    "\u062d\u0627\u0645\u0644\u0629",    # حاملة
-    "\u062d\u0645\u0644",                # حمل
-    "pregnant", "pregnancy",
-    "contractions", "water broke", "preeclampsia", "hamil",
+    "\u062d\u0627\u0645\u0644\u0629",  # حاملة
+    "\u062d\u0645\u0644",  # حمل
+    "pregnant",
+    "pregnancy",
+    "contractions",
+    "water broke",
+    "preeclampsia",
+    "hamil",
 ]
 _PREGNANCY_RE = re.compile(
     "|".join(re.escape(s) for s in _PREGNANCY_SUBSTRINGS), re.IGNORECASE
 )
 
 _LAB_SUBSTRINGS = [
-    "\u0646\u062a\u064a\u062c\u0629 \u062a\u062d\u0644\u064a\u0644",    # نتيجة تحليل
-    "\u062a\u062d\u0627\u0644\u064a\u0644 \u0637\u0644\u0639\u062a",    # تحاليل طلعت
-    "\u0646\u062a\u064a\u062c\u0629 \u0635\u0648\u0631\u0629",          # نتيجة صورة
-    "\u0635\u0648\u0631\u0629 \u0623\u0634\u0639\u0629",                # صورة أشعة
-    "lab result", "blood test result", "test result",
-    "x-ray result", "mri result", "ct scan result",
-    "ultrasound result", "ecg result", "biopsy result",
-    "my results show", "my tests show", "natijet tahlil",
+    "\u0646\u062a\u064a\u062c\u0629 \u062a\u062d\u0644\u064a\u0644",  # نتيجة تحليل
+    "\u062a\u062d\u0627\u0644\u064a\u0644 \u0637\u0644\u0639\u062a",  # تحاليل طلعت
+    "\u0646\u062a\u064a\u062c\u0629 \u0635\u0648\u0631\u0629",  # نتيجة صورة
+    "\u0635\u0648\u0631\u0629 \u0623\u0634\u0639\u0629",  # صورة أشعة
+    "lab result",
+    "blood test result",
+    "test result",
+    "x-ray result",
+    "mri result",
+    "ct scan result",
+    "ultrasound result",
+    "ecg result",
+    "biopsy result",
+    "my results show",
+    "my tests show",
+    "natijet tahlil",
 ]
-_LAB_RE = re.compile(
-    "|".join(re.escape(s) for s in _LAB_SUBSTRINGS), re.IGNORECASE
-)
+_LAB_RE = re.compile("|".join(re.escape(s) for s in _LAB_SUBSTRINGS), re.IGNORECASE)
 
 # ---- Suicidal ideation (single-trigger, highest priority) ------------------
 
 _SUICIDAL_SUBSTRINGS = [
-    "\u0628\u062f\u064a \u0645\u0648\u062a",                            # بدي موت
+    "\u0628\u062f\u064a \u0645\u0648\u062a",  # بدي موت
     "\u0628\u062f\u064a \u0642\u062a\u0644 \u062d\u0627\u0644\u064a",  # بدي قتل حالي
-    "\u0645\u0627 \u0628\u062f\u064a \u0639\u064a\u0634",              # ما بدي عيش
-    "\u0627\u0646\u062a\u062d\u0627\u0631",                             # انتحار
-    "kill myself", "end my life", "suicide", "want to die",
-    "no reason to live", "better off dead", "baddi mout",
+    "\u0645\u0627 \u0628\u062f\u064a \u0639\u064a\u0634",  # ما بدي عيش
+    "\u0627\u0646\u062a\u062d\u0627\u0631",  # انتحار
+    "kill myself",
+    "end my life",
+    "suicide",
+    "want to die",
+    "no reason to live",
+    "better off dead",
+    "baddi mout",
 ]
 _SUICIDAL_RE = re.compile(
     "|".join(re.escape(s) for s in _SUICIDAL_SUBSTRINGS), re.IGNORECASE
@@ -124,50 +146,75 @@ _RED_FLAG_PATTERNS: list[_RedFlagPattern] = [
     _RedFlagPattern(
         name="cardiac_mi",
         triggers_a=[
-            "chest pain", "waja3 sadr", "chest tightness", "chest pressure",
-            "\u0623\u0644\u0645 \u0635\u062f\u0631",   # ألم صدر
-            "\u0648\u062c\u0639 \u0635\u062f\u0631",   # وجع صدر
+            "chest pain",
+            "waja3 sadr",
+            "chest tightness",
+            "chest pressure",
+            "\u0623\u0644\u0645 \u0635\u062f\u0631",  # ألم صدر
+            "\u0648\u062c\u0639 \u0635\u062f\u0631",  # وجع صدر
         ],
         triggers_b=[
-            "arm numbness", "arm pain", "left arm", "jaw pain", "jaw numbness",
-            "shoulder pain", "shoulder numbness", "radiating",
-            "\u062e\u062f\u0631 \u064a\u062f",    # خدر يد
-            "\u0630\u0631\u0627\u0639",            # ذراع
-            "\u0643\u062a\u0641",                  # كتف
-            "\u0641\u0643",                        # فك
+            "arm numbness",
+            "arm pain",
+            "left arm",
+            "jaw pain",
+            "jaw numbness",
+            "shoulder pain",
+            "shoulder numbness",
+            "radiating",
+            "\u062e\u062f\u0631 \u064a\u062f",  # خدر يد
+            "\u0630\u0631\u0627\u0639",  # ذراع
+            "\u0643\u062a\u0641",  # كتف
+            "\u0641\u0643",  # فك
         ],
     ),
     # Anaphylaxis
     _RedFlagPattern(
         name="anaphylaxis",
         triggers_a=[
-            "throat swelling", "swollen throat", "can't swallow",
-            "hives", "allergic reaction", "anaphylaxis",
-            "\u062a\u0648\u0631\u0645 \u0632\u0648\u0631",              # تورم زور
+            "throat swelling",
+            "swollen throat",
+            "can't swallow",
+            "hives",
+            "allergic reaction",
+            "anaphylaxis",
+            "\u062a\u0648\u0631\u0645 \u0632\u0648\u0631",  # تورم زور
             "\u062d\u0633\u0627\u0633\u064a\u0629 \u0634\u062f\u064a\u062f\u0629",  # حساسية شديدة
         ],
         triggers_b=[
-            "difficulty breathing", "can't breathe", "cant breathe",
-            "shortness of breath", "throat closing",
+            "difficulty breathing",
+            "can't breathe",
+            "cant breathe",
+            "shortness of breath",
+            "throat closing",
             "\u0635\u0639\u0648\u0628\u0629 \u062a\u0646\u0641\u0633",  # صعوبة تنفس
-            "\u0636\u064a\u0642 \u062a\u0646\u0641\u0633",              # ضيق تنفس
+            "\u0636\u064a\u0642 \u062a\u0646\u0641\u0633",  # ضيق تنفس
         ],
     ),
     # Head trauma
     _RedFlagPattern(
         name="head_trauma",
         triggers_a=[
-            "head injury", "hit my head", "hit head", "head trauma",
-            "fell and hit", "bang on head",
-            "\u0636\u0631\u0628\u062a \u0631\u0627\u0633\u064a",              # ضربت راسي
+            "head injury",
+            "hit my head",
+            "hit head",
+            "head trauma",
+            "fell and hit",
+            "bang on head",
+            "\u0636\u0631\u0628\u062a \u0631\u0627\u0633\u064a",  # ضربت راسي
             "\u0648\u0642\u0639\u062a \u0639\u0644\u0649 \u0631\u0627\u0633\u064a",  # وقعت على راسي
             "darabt rasi",
         ],
         triggers_b=[
-            "vomiting", "throwing up", "unconscious", "lost consciousness",
-            "confusion", "blurred vision", "seizure",
-            "\u0631\u062c\u0651\u0639",                                        # رجّع
-            "\u0636\u064a\u0627\u0639 \u0648\u0639\u064a",                     # ضياع وعي
+            "vomiting",
+            "throwing up",
+            "unconscious",
+            "lost consciousness",
+            "confusion",
+            "blurred vision",
+            "seizure",
+            "\u0631\u062c\u0651\u0639",  # رجّع
+            "\u0636\u064a\u0627\u0639 \u0648\u0639\u064a",  # ضياع وعي
         ],
     ),
 ]
@@ -210,7 +257,7 @@ _HEDGING_RE = re.compile(
     r"may|might|could|possible|possibly|likely|probably|"
     r"suggest|indicate|appear|seem|consider|"
     r"\u0642\u062f|\u0631\u0628\u0645\u0627|\u0645\u062d\u062a\u0645\u0644|"  # قد ربما محتمل
-    r"\u064a\u0645\u0643\u0646|\u064a\u0628\u062f\u0648"                      # يمكن يبدو
+    r"\u064a\u0645\u0643\u0646|\u064a\u0628\u062f\u0648"  # يمكن يبدو
     r")\b",
     re.IGNORECASE,
 )
@@ -226,8 +273,7 @@ EMERGENCY_DISCLAIMER = (
     "Call 140 or go to the ER now."
 )
 UNCERTAINTY_TEXT = (
-    "I'm not certain about this case. "
-    "Please consult a doctor for a proper evaluation."
+    "I'm not certain about this case. Please consult a doctor for a proper evaluation."
 )
 
 # ---- Rejection messages ---------------------------------------------------

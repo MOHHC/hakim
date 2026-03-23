@@ -34,9 +34,11 @@ from app.knowledge.vector_store import (
 # Helpers
 # ---------------------------------------------------------------------------
 
+
 def _fake_vector(seed: int = 1) -> list[float]:
     """Returns a unit-length 768-dim vector seeded by an integer."""
     import random
+
     rng = random.Random(seed)
     v = [rng.gauss(0, 1) for _ in range(EMBEDDING_DIM)]
     norm = math.sqrt(sum(x * x for x in v)) or 1.0
@@ -49,6 +51,7 @@ def _gemini_embed_response(texts: list[str]) -> dict:
 
 def _mock_http_post(texts_per_call: int = 1):
     """Returns an AsyncMock that simulates the Gemini batchEmbedContents response."""
+
     async def _post(url, *, json=None, headers=None):
         n = len(json["requests"])
         mock_resp = MagicMock()
@@ -89,17 +92,26 @@ def _make_chunks(n: int = 3) -> list[dict]:
 # embeddings.py — unit tests
 # ---------------------------------------------------------------------------
 
+
 class TestEmbedText:
     @pytest.mark.asyncio
     async def test_returns_768_dim_vector(self):
-        with patch("httpx.AsyncClient.post", new_callable=AsyncMock, side_effect=_mock_http_post()):
+        with patch(
+            "httpx.AsyncClient.post",
+            new_callable=AsyncMock,
+            side_effect=_mock_http_post(),
+        ):
             vector = await embed_text("chest pain")
         assert isinstance(vector, list)
         assert len(vector) == EMBEDDING_DIM
 
     @pytest.mark.asyncio
     async def test_returns_floats(self):
-        with patch("httpx.AsyncClient.post", new_callable=AsyncMock, side_effect=_mock_http_post()):
+        with patch(
+            "httpx.AsyncClient.post",
+            new_callable=AsyncMock,
+            side_effect=_mock_http_post(),
+        ):
             vector = await embed_text("headache")
         assert all(isinstance(v, float) for v in vector)
 
@@ -114,7 +126,9 @@ class TestEmbedText:
             mock_resp.json.return_value = _gemini_embed_response([""])
             return mock_resp
 
-        with patch("httpx.AsyncClient.post", new_callable=AsyncMock, side_effect=capture_post):
+        with patch(
+            "httpx.AsyncClient.post", new_callable=AsyncMock, side_effect=capture_post
+        ):
             await embed_text("test", task_type="RETRIEVAL_QUERY")
 
         assert captured["body"]["requests"][0]["taskType"] == "RETRIEVAL_QUERY"
@@ -130,7 +144,9 @@ class TestEmbedText:
             mock_resp.json.return_value = _gemini_embed_response([""])
             return mock_resp
 
-        with patch("httpx.AsyncClient.post", new_callable=AsyncMock, side_effect=capture_post):
+        with patch(
+            "httpx.AsyncClient.post", new_callable=AsyncMock, side_effect=capture_post
+        ):
             await embed_text("test")
 
         model = captured["body"]["requests"][0]["model"]
@@ -153,11 +169,17 @@ class TestEmbedBatch:
             n = len(json["requests"])
             mock_resp = MagicMock()
             mock_resp.raise_for_status = MagicMock()
-            mock_resp.json.return_value = {"embeddings": [{"values": _fake_vector(call_count * 100 + j)} for j in range(n)]}
+            mock_resp.json.return_value = {
+                "embeddings": [
+                    {"values": _fake_vector(call_count * 100 + j)} for j in range(n)
+                ]
+            }
             call_count += 1
             return mock_resp
 
-        with patch("httpx.AsyncClient.post", new_callable=AsyncMock, side_effect=ordered_post):
+        with patch(
+            "httpx.AsyncClient.post", new_callable=AsyncMock, side_effect=ordered_post
+        ):
             vectors = await embed_batch(texts)
 
         assert len(vectors) == 5
@@ -173,10 +195,14 @@ class TestEmbedBatch:
             post_calls.append(len(json["requests"]))
             mock_resp = MagicMock()
             mock_resp.raise_for_status = MagicMock()
-            mock_resp.json.return_value = _gemini_embed_response([""] * len(json["requests"]))
+            mock_resp.json.return_value = _gemini_embed_response(
+                [""] * len(json["requests"])
+            )
             return mock_resp
 
-        with patch("httpx.AsyncClient.post", new_callable=AsyncMock, side_effect=counting_post):
+        with patch(
+            "httpx.AsyncClient.post", new_callable=AsyncMock, side_effect=counting_post
+        ):
             vectors = await embed_batch(texts)
 
         # Should have been split into 2 HTTP calls
@@ -187,7 +213,11 @@ class TestEmbedBatch:
 
     @pytest.mark.asyncio
     async def test_single_text_batch(self):
-        with patch("httpx.AsyncClient.post", new_callable=AsyncMock, side_effect=_mock_http_post()):
+        with patch(
+            "httpx.AsyncClient.post",
+            new_callable=AsyncMock,
+            side_effect=_mock_http_post(),
+        ):
             vectors = await embed_batch(["single text"])
         assert len(vectors) == 1
         assert len(vectors[0]) == EMBEDDING_DIM
@@ -205,7 +235,9 @@ class TestEmbedQuery:
             mock_resp.json.return_value = _gemini_embed_response([""])
             return mock_resp
 
-        with patch("httpx.AsyncClient.post", new_callable=AsyncMock, side_effect=capture_post):
+        with patch(
+            "httpx.AsyncClient.post", new_callable=AsyncMock, side_effect=capture_post
+        ):
             await embed_query("وجع بالصدر")
 
         assert captured["body"]["requests"][0]["taskType"] == "RETRIEVAL_QUERY"
@@ -214,6 +246,7 @@ class TestEmbedQuery:
 # ---------------------------------------------------------------------------
 # vector_store.py — keyword helpers
 # ---------------------------------------------------------------------------
+
 
 class TestTokenize:
     def test_removes_stop_words(self):
@@ -253,6 +286,7 @@ class TestKeywordScore:
 # vector_store.py — _build_where
 # ---------------------------------------------------------------------------
 
+
 class TestBuildWhere:
     def test_single_filter(self):
         result = _build_where({"medical_category": "cardiovascular"})
@@ -268,13 +302,17 @@ class TestBuildWhere:
 # VectorStore — integration (real ChromaDB, mocked embeddings)
 # ---------------------------------------------------------------------------
 
+
 class TestVectorStore:
     @pytest.mark.asyncio
     async def test_add_documents_returns_count(self, tmp_path):
         store = _make_store(tmp_path)
         chunks = _make_chunks(3)
-        with patch("app.knowledge.vector_store.embed_batch", new_callable=AsyncMock,
-                   return_value=[_fake_vector(i) for i in range(3)]):
+        with patch(
+            "app.knowledge.vector_store.embed_batch",
+            new_callable=AsyncMock,
+            return_value=[_fake_vector(i) for i in range(3)],
+        ):
             n = await store.add_documents(chunks)
         assert n == 3
 
@@ -282,8 +320,11 @@ class TestVectorStore:
     async def test_count_after_add(self, tmp_path):
         store = _make_store(tmp_path)
         chunks = _make_chunks(5)
-        with patch("app.knowledge.vector_store.embed_batch", new_callable=AsyncMock,
-                   return_value=[_fake_vector(i) for i in range(5)]):
+        with patch(
+            "app.knowledge.vector_store.embed_batch",
+            new_callable=AsyncMock,
+            return_value=[_fake_vector(i) for i in range(5)],
+        ):
             await store.add_documents(chunks)
         assert store.count() == 5
 
@@ -298,9 +339,17 @@ class TestVectorStore:
         store = _make_store(tmp_path)
         chunks = _make_chunks(3)
         vectors = [_fake_vector(i) for i in range(3)]
-        with patch("app.knowledge.vector_store.embed_batch", new_callable=AsyncMock, return_value=vectors):
+        with patch(
+            "app.knowledge.vector_store.embed_batch",
+            new_callable=AsyncMock,
+            return_value=vectors,
+        ):
             await store.add_documents(chunks)
-        with patch("app.knowledge.vector_store.embed_query", new_callable=AsyncMock, return_value=_fake_vector(0)):
+        with patch(
+            "app.knowledge.vector_store.embed_query",
+            new_callable=AsyncMock,
+            return_value=_fake_vector(0),
+        ):
             results = await store.search("chest pain", top_k=2)
         assert len(results) <= 2
         assert all(isinstance(r, SearchResult) for r in results)
@@ -308,7 +357,11 @@ class TestVectorStore:
     @pytest.mark.asyncio
     async def test_search_empty_store_returns_empty(self, tmp_path):
         store = _make_store(tmp_path)
-        with patch("app.knowledge.vector_store.embed_query", new_callable=AsyncMock, return_value=_fake_vector(0)):
+        with patch(
+            "app.knowledge.vector_store.embed_query",
+            new_callable=AsyncMock,
+            return_value=_fake_vector(0),
+        ):
             results = await store.search("test query")
         assert results == []
 
@@ -317,9 +370,17 @@ class TestVectorStore:
         store = _make_store(tmp_path)
         chunks = _make_chunks(3)
         vectors = [_fake_vector(i) for i in range(3)]
-        with patch("app.knowledge.vector_store.embed_batch", new_callable=AsyncMock, return_value=vectors):
+        with patch(
+            "app.knowledge.vector_store.embed_batch",
+            new_callable=AsyncMock,
+            return_value=vectors,
+        ):
             await store.add_documents(chunks)
-        with patch("app.knowledge.vector_store.embed_query", new_callable=AsyncMock, return_value=_fake_vector(0)):
+        with patch(
+            "app.knowledge.vector_store.embed_query",
+            new_callable=AsyncMock,
+            return_value=_fake_vector(0),
+        ):
             results = await store.search("medical conditions")
         for r in results:
             assert r.chunk_id
@@ -332,10 +393,20 @@ class TestVectorStore:
         store = _make_store(tmp_path)
         chunks = _make_chunks(6)
         vectors = [_fake_vector(i) for i in range(6)]
-        with patch("app.knowledge.vector_store.embed_batch", new_callable=AsyncMock, return_value=vectors):
+        with patch(
+            "app.knowledge.vector_store.embed_batch",
+            new_callable=AsyncMock,
+            return_value=vectors,
+        ):
             await store.add_documents(chunks)
-        with patch("app.knowledge.vector_store.embed_query", new_callable=AsyncMock, return_value=_fake_vector(0)):
-            results = await store.search("pain", top_k=5, filters={"medical_category": "cardiovascular"})
+        with patch(
+            "app.knowledge.vector_store.embed_query",
+            new_callable=AsyncMock,
+            return_value=_fake_vector(0),
+        ):
+            results = await store.search(
+                "pain", top_k=5, filters={"medical_category": "cardiovascular"}
+            )
         assert all(r.metadata["medical_category"] == "cardiovascular" for r in results)
 
     @pytest.mark.asyncio
@@ -343,7 +414,11 @@ class TestVectorStore:
         store = _make_store(tmp_path)
         chunks = _make_chunks(2)
         vectors = [_fake_vector(i) for i in range(2)]
-        with patch("app.knowledge.vector_store.embed_batch", new_callable=AsyncMock, return_value=vectors):
+        with patch(
+            "app.knowledge.vector_store.embed_batch",
+            new_callable=AsyncMock,
+            return_value=vectors,
+        ):
             await store.add_documents(chunks)
             await store.add_documents(chunks)  # same IDs — upsert
         assert store.count() == 2  # not 4
@@ -353,7 +428,11 @@ class TestVectorStore:
         store = _make_store(tmp_path)
         chunks = _make_chunks(3)
         vectors = [_fake_vector(i) for i in range(3)]
-        with patch("app.knowledge.vector_store.embed_batch", new_callable=AsyncMock, return_value=vectors):
+        with patch(
+            "app.knowledge.vector_store.embed_batch",
+            new_callable=AsyncMock,
+            return_value=vectors,
+        ):
             await store.add_documents(chunks)
         assert store.count() == 3
         store.delete_collection()
@@ -364,9 +443,17 @@ class TestVectorStore:
         store = _make_store(tmp_path)
         chunks = _make_chunks(3)
         vectors = [_fake_vector(i) for i in range(3)]
-        with patch("app.knowledge.vector_store.embed_batch", new_callable=AsyncMock, return_value=vectors):
+        with patch(
+            "app.knowledge.vector_store.embed_batch",
+            new_callable=AsyncMock,
+            return_value=vectors,
+        ):
             await store.add_documents(chunks)
-        with patch("app.knowledge.vector_store.embed_query", new_callable=AsyncMock, return_value=_fake_vector(0)):
+        with patch(
+            "app.knowledge.vector_store.embed_query",
+            new_callable=AsyncMock,
+            return_value=_fake_vector(0),
+        ):
             results = await store.search("medical conditions")
         for r in results:
             assert 0.0 <= r.vector_score <= 1.0
@@ -387,7 +474,11 @@ class TestVectorStore:
         store1 = VectorStore("test_col", persist_dir=persist)
         chunks = _make_chunks(3)
         vectors = [_fake_vector(i) for i in range(3)]
-        with patch("app.knowledge.vector_store.embed_batch", new_callable=AsyncMock, return_value=vectors):
+        with patch(
+            "app.knowledge.vector_store.embed_batch",
+            new_callable=AsyncMock,
+            return_value=vectors,
+        ):
             await store1.add_documents(chunks)
 
         # Re-open from same directory

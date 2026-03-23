@@ -1,7 +1,5 @@
 """Comprehensive tests for ArabicProcessor — 40+ cases across all 5 methods."""
 
-from pathlib import Path
-
 import pytest
 
 from app.core.arabic_processor import ArabicProcessor, LexiconMatch
@@ -9,6 +7,7 @@ from app.core.arabic_processor import ArabicProcessor, LexiconMatch
 # ---------------------------------------------------------------------------
 # Shared fixture
 # ---------------------------------------------------------------------------
+
 
 @pytest.fixture(scope="module")
 def proc() -> ArabicProcessor:
@@ -26,6 +25,7 @@ def proc_no_lexicon(tmp_path_factory) -> ArabicProcessor:
 # 1. normalize()
 # ===========================================================================
 
+
 class TestNormalize:
     def test_removes_kasra(self, proc):
         assert "\u0650" not in proc.normalize("كِتاب")
@@ -39,7 +39,9 @@ class TestNormalize:
     def test_removes_multiple_diacritics(self, proc):
         text = "وَجَعٌ شَدِيدٌ"
         result = proc.normalize(text)
-        assert all(c not in result for c in "\u064b\u064c\u064d\u064e\u064f\u0650\u0651")
+        assert all(
+            c not in result for c in "\u064b\u064c\u064d\u064e\u064f\u0650\u0651"
+        )
 
     def test_normalizes_alef_with_hamza_above(self, proc):
         assert proc.normalize("أَلَم") == "الم"
@@ -75,6 +77,7 @@ class TestNormalize:
 # ===========================================================================
 # 2. detect_language()
 # ===========================================================================
+
 
 class TestDetectLanguage:
     def test_pure_arabic(self, proc):
@@ -121,6 +124,7 @@ class TestDetectLanguage:
 # 3. transliterate()
 # ===========================================================================
 
+
 class TestTransliterate:
     def test_3_becomes_ain(self, proc):
         result = proc.transliterate("3ayn")
@@ -162,6 +166,7 @@ class TestTransliterate:
 # ===========================================================================
 # 4. lookup()
 # ===========================================================================
+
 
 class TestLookup:
     def test_latin_exact_match(self, proc):
@@ -219,6 +224,7 @@ class TestLookup:
 # ===========================================================================
 # 5. extract_symptoms()
 # ===========================================================================
+
 
 class TestExtractSymptoms:
     def test_single_franco_symptom(self, proc):

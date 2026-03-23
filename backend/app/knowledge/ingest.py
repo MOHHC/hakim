@@ -56,16 +56,17 @@ _CATEGORY_HINTS: list[tuple[str, str]] = [
 # Data models
 # ---------------------------------------------------------------------------
 
+
 @dataclass
 class DocumentChunk:
-    chunk_id: str           # "{source_stem}_{page}_{index}"
-    source_name: str        # original filename
-    page_number: int        # 1-based; 0 for non-paged sources
-    section_title: str      # nearest heading above this chunk (empty if none)
-    medical_category: str   # inferred from filename or "general"
-    text: str               # chunk text
+    chunk_id: str  # "{source_stem}_{page}_{index}"
+    source_name: str  # original filename
+    page_number: int  # 1-based; 0 for non-paged sources
+    section_title: str  # nearest heading above this chunk (empty if none)
+    medical_category: str  # inferred from filename or "general"
+    text: str  # chunk text
     token_count: int
-    char_start: int         # character offset in the full document text
+    char_start: int  # character offset in the full document text
     char_end: int
 
 
@@ -82,6 +83,7 @@ class IngestResult:
 # Tokenizer helpers
 # ---------------------------------------------------------------------------
 
+
 def _get_encoder() -> tiktoken.Encoding:
     return tiktoken.get_encoding(ENCODING_NAME)
 
@@ -93,6 +95,7 @@ def _count_tokens(text: str, enc: tiktoken.Encoding) -> int:
 # ---------------------------------------------------------------------------
 # Text extraction
 # ---------------------------------------------------------------------------
+
 
 def extract_text_from_txt(path: Path) -> list[tuple[int, str]]:
     """Returns list of (page_number, text). TXT/MD are treated as one page."""
@@ -147,6 +150,7 @@ def _extract_section_title(text: str, char_offset: int) -> str:
 # Medical category inference
 # ---------------------------------------------------------------------------
 
+
 def _infer_category(source_name: str) -> str:
     lower = source_name.lower()
     for keyword, category in _CATEGORY_HINTS:
@@ -158,6 +162,7 @@ def _infer_category(source_name: str) -> str:
 # ---------------------------------------------------------------------------
 # Recursive text splitter
 # ---------------------------------------------------------------------------
+
 
 def _split_text(
     text: str,
@@ -206,6 +211,7 @@ def _split_text(
 # Core ingestion
 # ---------------------------------------------------------------------------
 
+
 def ingest_file(
     path: Path,
     enc: tiktoken.Encoding,
@@ -234,17 +240,19 @@ def ingest_file(
             section_title = _extract_section_title(page_text, char_start)
             chunk_id = f"{stem}_{page_num}_{chunk_idx}"
 
-            chunks.append(DocumentChunk(
-                chunk_id=chunk_id,
-                source_name=source_name,
-                page_number=page_num,
-                section_title=section_title,
-                medical_category=medical_category,
-                text=chunk_text,
-                token_count=token_count,
-                char_start=char_start,
-                char_end=char_end,
-            ))
+            chunks.append(
+                DocumentChunk(
+                    chunk_id=chunk_id,
+                    source_name=source_name,
+                    page_number=page_num,
+                    section_title=section_title,
+                    medical_category=medical_category,
+                    text=chunk_text,
+                    token_count=token_count,
+                    char_start=char_start,
+                    char_end=char_end,
+                )
+            )
 
     return chunks
 
@@ -263,7 +271,11 @@ def ingest_directory(
     errors: list[str] = []
     files_processed = 0
 
-    supported = list(source_dir.glob("*.txt")) + list(source_dir.glob("*.md")) + list(source_dir.glob("*.pdf"))
+    supported = (
+        list(source_dir.glob("*.txt"))
+        + list(source_dir.glob("*.md"))
+        + list(source_dir.glob("*.pdf"))
+    )
 
     if not supported:
         logger.warning("No supported files found in %s", source_dir)
@@ -292,7 +304,9 @@ def ingest_directory(
         },
         "chunks": [asdict(c) for c in all_chunks],
     }
-    output_path.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
+    output_path.write_text(
+        json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8"
+    )
     logger.info("Wrote %d chunks to %s", len(all_chunks), output_path)
 
     return IngestResult(
@@ -307,6 +321,7 @@ def ingest_directory(
 # ---------------------------------------------------------------------------
 # CLI entry point
 # ---------------------------------------------------------------------------
+
 
 def _build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
@@ -352,7 +367,7 @@ def main() -> None:
         overlap_tokens=args.overlap_tokens,
     )
 
-    print(f"\nDone.")
+    print("\nDone.")
     print(f"  Files processed : {result.files_processed}")
     print(f"  Total chunks    : {result.total_chunks}")
     print(f"  Output          : {result.output_path}")

@@ -1,4 +1,5 @@
 """Extensive tests for SafetyGuardrails — each guardrail tested independently."""
+
 from __future__ import annotations
 
 import pytest
@@ -10,10 +11,6 @@ from app.core.safety_guardrails import (
     GuardrailResult,
     SafetyGuardrails,
     ViolationType,
-    _INFANT_RE,
-    _LAB_RE,
-    _PREGNANCY_RE,
-    _SUICIDAL_RE,
 )
 
 
@@ -95,7 +92,9 @@ class TestSuicidalIdeation:
         assert r.violation_type == ViolationType.SUICIDAL_IDEATION
 
     def test_arabic_suicide_word(self, g):
-        r = g.check_query("\u0639\u0646\u062f\u064a \u0623\u0641\u0643\u0627\u0631 \u0627\u0646\u062a\u062d\u0627\u0631")
+        r = g.check_query(
+            "\u0639\u0646\u062f\u064a \u0623\u0641\u0643\u0627\u0631 \u0627\u0646\u062a\u062d\u0627\u0631"
+        )
         assert not r.is_safe
         assert r.violation_type == ViolationType.SUICIDAL_IDEATION
 
@@ -145,14 +144,18 @@ class TestScopeInfant:
         assert r.violation_type == ViolationType.SCOPE_INFANT
 
     def test_arabic_radi3(self, g):
-        r = g.check_query("\u0627\u0644\u0631\u0636\u064a\u0639 \u0639\u0646\u062f\u0647 \u062d\u0645\u0649")
+        r = g.check_query(
+            "\u0627\u0644\u0631\u0636\u064a\u0639 \u0639\u0646\u062f\u0647 \u062d\u0645\u0649"
+        )
         assert not r.is_safe
         assert r.violation_type == ViolationType.SCOPE_INFANT
 
     def test_rejection_directs_to_pediatrician(self, g):
         r = g.check_query("my infant is sick")
         assert r.rejection_message
-        assert "pediatrician" in r.rejection_message.lower() or "ER" in r.rejection_message
+        assert (
+            "pediatrician" in r.rejection_message.lower() or "ER" in r.rejection_message
+        )
 
     def test_adult_query_not_flagged(self, g):
         r = g.check_query("3andi waja3 ras w 7arara")
@@ -186,7 +189,9 @@ class TestScopePregnancy:
         assert r.violation_type == ViolationType.SCOPE_PREGNANCY
 
     def test_arabic_hamila(self, g):
-        r = g.check_query("\u0623\u0646\u0627 \u062d\u0627\u0645\u0644\u0629 \u0648\u0639\u0646\u062f\u064a \u0623\u0644\u0645")
+        r = g.check_query(
+            "\u0623\u0646\u0627 \u062d\u0627\u0645\u0644\u0629 \u0648\u0639\u0646\u062f\u064a \u0623\u0644\u0645"
+        )
         assert not r.is_safe
         assert r.violation_type == ViolationType.SCOPE_PREGNANCY
 
@@ -230,7 +235,9 @@ class TestScopeLabResults:
 
     def test_arabic_lab_result(self, g):
         # نتيجة تحليل
-        r = g.check_query("\u0646\u062a\u064a\u062c\u0629 \u062a\u062d\u0644\u064a\u0644\u064a \u0637\u0644\u0639\u062a \u0639\u0627\u0644\u064a\u0629")
+        r = g.check_query(
+            "\u0646\u062a\u064a\u062c\u0629 \u062a\u062d\u0644\u064a\u0644\u064a \u0637\u0644\u0639\u062a \u0639\u0627\u0644\u064a\u0629"
+        )
         assert not r.is_safe
         assert r.violation_type == ViolationType.SCOPE_LAB_RESULTS
 
@@ -415,8 +422,7 @@ class TestCheckResponseMedication:
 
     def test_general_advice_passes(self, g):
         r = g.check_response(
-            "You should stay hydrated and rest. "
-            "If it gets worse, consult a doctor."
+            "You should stay hydrated and rest. If it gets worse, consult a doctor."
         )
         assert r.is_safe
 
