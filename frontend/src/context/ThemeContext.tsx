@@ -18,7 +18,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   const [isDark, setIsDark] = useState(() => {
     const stored = localStorage.getItem('hakim-theme')
     if (stored) return stored === 'dark'
-    return true // default to dark
+    return false // default to light
   })
 
   useEffect(() => {

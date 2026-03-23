@@ -62,7 +62,7 @@ export default function WelcomeScreen({ onExampleClick }: { onExampleClick: (t: 
     <div className="welcome-hero" style={{
       flex: 1, display: 'flex', flexDirection: 'column',
       alignItems: 'center', justifyContent: 'flex-start',
-      padding: '32px 20px 24px', overflow: 'auto',
+      padding: '20px 20px 24px', overflow: 'auto',
     }}>
       {/* Decorative ornament rings */}
       <div className="ornament-ring ornament-ring-1" aria-hidden="true" />
@@ -93,10 +93,10 @@ export default function WelcomeScreen({ onExampleClick }: { onExampleClick: (t: 
         whiteSpace: 'nowrap', lineHeight: 1,
       }}>حكيم</div>
 
-      {/* Logo + Title */}
-      <div className="anim-scale-in delay-1" style={{ textAlign: 'center', marginBottom: 28, position: 'relative', zIndex: 1 }}>
-        <div className="logo-circle">
-          <svg width="34" height="34" viewBox="0 0 40 40" fill="none">
+      {/* Logo + Title — tighter spacing */}
+      <div className="anim-scale-in delay-1" style={{ textAlign: 'center', marginBottom: 10, position: 'relative', zIndex: 1 }}>
+        <div className="logo-circle" style={{ width: 52, height: 52, marginBottom: 6 }}>
+          <svg width="28" height="28" viewBox="0 0 40 40" fill="none">
             <polygon points="20,2 25,9 33,9 38,16 33,24 25,24 20,31 15,24 7,24 2,16 7,9 15,9"
               fill="none" stroke="var(--gold)" strokeWidth="1.5" opacity="0.7" />
             <polygon points="20,6 24,11 30,11 34,16 30,22 24,22 20,27 16,22 10,22 6,16 10,11 16,11"
@@ -107,21 +107,21 @@ export default function WelcomeScreen({ onExampleClick }: { onExampleClick: (t: 
         </div>
         <h1 style={{
           fontFamily: 'var(--font-display)',
-          fontSize: 'clamp(2.2rem, 7vw, 3.6rem)',
+          fontSize: 'clamp(1.8rem, 5vw, 2.8rem)',
           fontWeight: 700,
           fontStyle: language === 'en' ? 'italic' : 'normal',
           color: 'var(--gold)',
-          margin: '0 0 8px',
+          margin: '0 0 4px',
           letterSpacing: language === 'en' ? '0.02em' : '0',
           lineHeight: 1.1,
         }}>{t('appName')}</h1>
-        <p style={{ fontSize: '0.94rem', color: 'var(--text-muted)', margin: '0 0 4px', lineHeight: 1.5 }}>{t('welcomeTitle')}</p>
-        <p style={{ fontSize: '0.78rem', color: 'var(--text-dim)', margin: 0 }}>{t('welcomeSubtitle')}</p>
+        <p style={{ fontSize: '0.9rem', color: 'var(--text-muted)', margin: '0 0 2px', lineHeight: 1.4 }}>{t('welcomeTitle')}</p>
+        <p style={{ fontSize: '0.76rem', color: 'var(--text-dim)', margin: 0 }}>{t('welcomeSubtitle')}</p>
       </div>
 
       {/* Stat pills */}
       <div className="anim-fade-in delay-2" style={{
-        display: 'flex', gap: 10, marginBottom: 24, flexWrap: 'wrap', justifyContent: 'center',
+        display: 'flex', gap: 8, marginBottom: 14, flexWrap: 'wrap', justifyContent: 'center',
         position: 'relative', zIndex: 1,
       }}>
         <div className="stat-pill">
@@ -138,10 +138,47 @@ export default function WelcomeScreen({ onExampleClick }: { onExampleClick: (t: 
         </div>
       </div>
 
-      {/* Feature Cards */}
+      {/* "Try asking" divider + Example Prompts — ABOVE feature cards */}
+      <div className="ornamental-divider anim-fade-in delay-3" style={{ maxWidth: 520, marginBottom: 10, position: 'relative', zIndex: 1 }}>
+        <div className="ornamental-divider-line" />
+        <div className="ornamental-divider-diamond" />
+        <span style={{ fontSize: '0.7rem', color: 'var(--text-dim)', letterSpacing: '0.1em', whiteSpace: 'nowrap' }}>
+          {t('tryAsking')}
+        </span>
+        <div className="ornamental-divider-diamond" />
+        <div className="ornamental-divider-line" />
+      </div>
+
+      <div style={{
+        display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 8,
+        width: '100%', maxWidth: 540,
+        position: 'relative', zIndex: 1, marginBottom: 24,
+      }}>
+        {examplePrompts.map((p, i) => (
+          <button
+            key={i}
+            onClick={() => onExampleClick(p[language])}
+            className={`welcome-prompt anim-scale-in delay-${i + 4}`}
+            style={{
+              padding: '10px 14px', borderRadius: 12,
+              textAlign: language === 'ar' ? 'right' : 'left',
+              fontSize: '0.82rem', lineHeight: 1.45,
+              cursor: 'pointer', fontFamily: 'inherit',
+              display: 'flex', alignItems: 'center', gap: 10,
+            }}
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--gold)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0, opacity: 0.5 }}>
+              <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" />
+            </svg>
+            <span>{p[language]}</span>
+          </button>
+        ))}
+      </div>
+
+      {/* Feature Cards — now below the prompts */}
       <div style={{
         display: 'flex', gap: 12, width: '100%', maxWidth: 580,
-        marginBottom: 28, flexWrap: 'wrap', justifyContent: 'center',
+        marginBottom: 24, flexWrap: 'wrap', justifyContent: 'center',
         position: 'relative', zIndex: 1,
       }}>
         <FeatureCard
@@ -177,50 +214,12 @@ export default function WelcomeScreen({ onExampleClick }: { onExampleClick: (t: 
         />
       </div>
 
-      {/* Ornamental divider */}
-      <div className="ornamental-divider anim-fade-in delay-5" style={{ maxWidth: 520, marginBottom: 14, position: 'relative', zIndex: 1 }}>
-        <div className="ornamental-divider-line" />
-        <div className="ornamental-divider-diamond" />
-        <span style={{ fontSize: '0.7rem', color: 'var(--text-dim)', letterSpacing: '0.1em', whiteSpace: 'nowrap' }}>
-          {t('tryAsking')}
-        </span>
-        <div className="ornamental-divider-diamond" />
-        <div className="ornamental-divider-line" />
-      </div>
-
-      {/* Example Prompts */}
-      <div style={{
-        display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 10,
+      {/* How It Works section */}
+      <div className="anim-fade-in delay-5" style={{
         width: '100%', maxWidth: 540,
         position: 'relative', zIndex: 1,
       }}>
-        {examplePrompts.map((p, i) => (
-          <button
-            key={i}
-            onClick={() => onExampleClick(p[language])}
-            className={`welcome-prompt anim-scale-in delay-${i + 6}`}
-            style={{
-              padding: '13px 16px', borderRadius: 12,
-              textAlign: language === 'ar' ? 'right' : 'left',
-              fontSize: '0.84rem', lineHeight: 1.5,
-              cursor: 'pointer', fontFamily: 'inherit',
-              display: 'flex', alignItems: 'center', gap: 10,
-            }}
-          >
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--gold)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0, opacity: 0.5 }}>
-              <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" />
-            </svg>
-            <span>{p[language]}</span>
-          </button>
-        ))}
-      </div>
-
-      {/* How It Works section */}
-      <div className="anim-fade-in delay-5" style={{
-        marginTop: 32, width: '100%', maxWidth: 540,
-        position: 'relative', zIndex: 1,
-      }}>
-        <div className="ornamental-divider" style={{ marginBottom: 18 }}>
+        <div className="ornamental-divider" style={{ marginBottom: 14 }}>
           <div className="ornamental-divider-line" />
           <div className="ornamental-divider-diamond" />
           <span style={{ fontSize: '0.7rem', color: 'var(--text-dim)', letterSpacing: '0.1em', whiteSpace: 'nowrap' }}>

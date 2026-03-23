@@ -93,7 +93,7 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
     () => (localStorage.getItem('hakim-lang') as Language) || 'ar',
   )
   const [responseScript, setScript] = useState<ResponseScript>(
-    () => (localStorage.getItem('hakim-script') as ResponseScript) || 'arabic',
+    () => (localStorage.getItem('hakim-script') as ResponseScript) || 'franco',
   )
 
   const handleSet = useCallback((lang: Language) => {
