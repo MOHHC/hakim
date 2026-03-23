@@ -14,6 +14,15 @@ from app.core.llm_client import (
 )
 
 
+@pytest.fixture(autouse=True)
+def _fake_api_keys(monkeypatch):
+    """Ensure provider configs have fake API keys so tests don't skip providers."""
+    monkeypatch.setattr(GEMINI_CONFIG, "api_key", "fake-gemini-key")
+    monkeypatch.setattr(GROQ_CONFIG, "api_key", "fake-groq-key")
+    # Disable rate limiter so it doesn't inject extra sleeps into tests
+    monkeypatch.setattr("app.core.llm_client._gemini_limiter.acquire", AsyncMock())
+
+
 def _gemini_response(text: str = "test response") -> dict:
     return {
         "candidates": [{"content": {"parts": [{"text": text}]}}],
