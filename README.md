@@ -4,8 +4,8 @@
 
 **AI-Powered Medical Triage for Arabic Speakers**
 
-[![CI](https://github.com/YOUR_USERNAME/hakim/actions/workflows/ci.yml/badge.svg)](https://github.com/YOUR_USERNAME/hakim/actions/workflows/ci.yml)
-[![Deploy](https://github.com/YOUR_USERNAME/hakim/actions/workflows/deploy.yml/badge.svg)](https://github.com/YOUR_USERNAME/hakim/actions/workflows/deploy.yml)
+[![CI](https://github.com/MOHHC/hakim/actions/workflows/ci.yml/badge.svg)](https://github.com/MOHHC/hakim/actions/workflows/ci.yml)
+[![Deploy](https://github.com/MOHHC/hakim/actions/workflows/deploy.yml/badge.svg)](https://github.com/MOHHC/hakim/actions/workflows/deploy.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-0e7c6b.svg)](LICENSE)
 
 Hakim takes symptom descriptions in **Lebanese Arabic**, **Franco-Arab** (3ammiye), or **English**, triages urgency into GREEN / YELLOW / RED, suggests possible conditions with medical citations, and recommends next steps — all with strict safety guardrails.
@@ -73,7 +73,7 @@ cp ../.env.example ../.env   # fill in GEMINI_API_KEY at minimum
 uvicorn app.main:app --reload --port 8000
 ```
 
-Health check: http://localhost:8000/health
+Health check: http://localhost:8000/api/health
 API docs: http://localhost:8000/docs
 
 ### Frontend
@@ -85,7 +85,7 @@ echo "VITE_API_URL=http://localhost:8000" > .env
 npm run dev
 ```
 
-App: http://localhost:3000
+App: http://localhost:5173
 
 ### Docker
 
@@ -110,8 +110,9 @@ docker compose up
 ```
 hakim/
 ├── .github/workflows/     CI/CD pipelines
-│   ├── ci.yml             Lint + test + eval + build
-│   └── deploy.yml         Auto-deploy on merge to main
+│   ├── ci.yml             Lint + test + build
+│   ├── deploy.yml         Auto-deploy on push to main
+│   └── eval.yml           Evaluation (manual/weekly)
 ├── backend/
 │   ├── app/
 │   │   ├── main.py                FastAPI app + middleware
@@ -129,7 +130,7 @@ hakim/
 │   │   ├── knowledge/             Ingest, embed, vector store
 │   │   └── data/lexicon/          Lebanese medical term dictionaries
 │   └── tests/
-│       └── eval/                  55 scenarios, eval pipeline
+│       └── eval/                  50 scenarios, eval pipeline
 ├── frontend/
 │   └── src/
 │       ├── components/            13 React components
@@ -156,7 +157,7 @@ See [docs/SAFETY.md](docs/SAFETY.md) for the complete safety philosophy.
 
 ## Evaluation
 
-The evaluation pipeline tests 55 scenarios across GREEN, YELLOW, RED, and edge cases:
+The evaluation pipeline tests 50 scenarios across GREEN, YELLOW, RED, and edge cases:
 
 | Metric | Target | Description |
 |--------|--------|-------------|
@@ -178,7 +179,7 @@ See [docs/EVALUATION.md](docs/EVALUATION.md) for methodology and results.
 - [x] Phase 2: Knowledge Base & RAG Pipeline — ChromaDB, multi-query retrieval, reranking
 - [x] Phase 3: Triage Engine & Safety — 5-step pipeline, compound emergency detection
 - [x] Phase 4: Full-Stack Application — React chat UI, SSE streaming, RTL/i18n
-- [x] Phase 5: Evaluation & Testing — 55 scenarios, CI pipeline with 95% recall gate
+- [x] Phase 5: Evaluation & Testing — 50 scenarios, CI pipeline with 95% recall gate
 - [x] Phase 6: Deployment & Polish — Vercel + Render, GitHub Actions CI/CD
 
 ### Future
