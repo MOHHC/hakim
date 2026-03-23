@@ -182,7 +182,17 @@ class LLMClient:
         for attempt in range(self.MAX_RETRIES):
             try:
                 return await self._call_provider(cfg, prompt, system_prompt, temperature, max_tokens)
-            except (httpx.HTTPStatusError, httpx.RequestError, LLMError) as exc:
+            except httpx.HTTPStatusError as exc:
+                last_exc = exc
+                # Don't retry on 429 (quota) or 401/403 (auth) — fail fast to next provider
+                if exc.response.status_code in (401, 403, 429):
+                    logger.warning("%s returned %d, skipping retries", cfg.name, exc.response.status_code)
+                    break
+                if attempt < self.MAX_RETRIES - 1:
+                    delay = self.RETRY_BASE_DELAY * (2 ** attempt)
+                    logger.debug("%s attempt %d failed, retrying in %.1fs: %s", cfg.name, attempt + 1, delay, exc)
+                    await asyncio.sleep(delay)
+            except (httpx.RequestError, LLMError) as exc:
                 last_exc = exc
                 if attempt < self.MAX_RETRIES - 1:
                     delay = self.RETRY_BASE_DELAY * (2 ** attempt)
