@@ -11,6 +11,7 @@ from app.core.llm_client import (
     ProviderConfig,
     GEMINI_CONFIG,
     GROQ_CONFIG,
+    _gemini_breaker,
 )
 
 
@@ -21,6 +22,8 @@ def _fake_api_keys(monkeypatch):
     monkeypatch.setattr(GROQ_CONFIG, "api_key", "fake-groq-key")
     # Disable rate limiter so it doesn't inject extra sleeps into tests
     monkeypatch.setattr("app.core.llm_client._gemini_limiter.acquire", AsyncMock())
+    # Reset circuit breaker so tests don't leak state
+    _gemini_breaker._tripped_at = 0.0
 
 
 def _gemini_response(text: str = "test response") -> dict:

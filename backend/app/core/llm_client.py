@@ -129,9 +129,34 @@ class _RateLimiter:
             self._last_request = time.monotonic()
 
 
+# ---------------------------------------------------------------------------
+# Circuit Breaker — skip Gemini entirely after quota/auth errors
+# ---------------------------------------------------------------------------
+
+class _CircuitBreaker:
+    """Skip a provider for a cooldown period after fatal errors (429, 401, 403)."""
+
+    def __init__(self, cooldown_seconds: float = 60.0) -> None:
+        self._cooldown = cooldown_seconds
+        self._tripped_at: float = 0.0
+
+    def trip(self) -> None:
+        self._tripped_at = time.monotonic()
+        logger.warning("Circuit breaker tripped — skipping provider for %.0fs", self._cooldown)
+
+    def is_open(self) -> bool:
+        if self._tripped_at == 0.0:
+            return False
+        if time.monotonic() - self._tripped_at > self._cooldown:
+            self._tripped_at = 0.0  # Reset
+            return False
+        return True
+
+
 # Module-level singletons
 _cache = _ResponseCache()
 _gemini_limiter = _RateLimiter(max_rpm=14)  # Stay safely under 15 RPM
+_gemini_breaker = _CircuitBreaker(cooldown_seconds=60.0)
 
 
 class LLMClient:
@@ -158,6 +183,10 @@ class LLMClient:
 
         for provider_cfg in (GEMINI_CONFIG, GROQ_CONFIG):
             if not provider_cfg.api_key:
+                continue
+            # Skip Gemini if circuit breaker is open (recent 429/auth failure)
+            if provider_cfg.name == "gemini" and _gemini_breaker.is_open():
+                logger.info("Skipping Gemini — circuit breaker open")
                 continue
             try:
                 resp = await self._generate_with_retry(
@@ -187,6 +216,8 @@ class LLMClient:
                 # Don't retry on 429 (quota) or 401/403 (auth) — fail fast to next provider
                 if exc.response.status_code in (401, 403, 429):
                     logger.warning("%s returned %d, skipping retries", cfg.name, exc.response.status_code)
+                    if cfg.name == "gemini":
+                        _gemini_breaker.trip()
                     break
                 if attempt < self.MAX_RETRIES - 1:
                     delay = self.RETRY_BASE_DELAY * (2 ** attempt)
@@ -353,6 +384,10 @@ class LLMClient:
         ]:
             if not cfg.api_key:
                 continue
+            # Skip Gemini if circuit breaker is open (recent 429/auth failure)
+            if cfg.name == "gemini" and _gemini_breaker.is_open():
+                logger.info("Skipping Gemini streaming — circuit breaker open")
+                continue
             yielded = False
             accumulated: list[str] = []
             start = time.monotonic()
@@ -373,6 +408,18 @@ class LLMClient:
                     latency_ms=(time.monotonic() - start) * 1000,
                 )
                 return  # provider completed the stream successfully
+            except httpx.HTTPStatusError as exc:
+                # Trip circuit breaker on quota/auth errors
+                if cfg.name == "gemini" and exc.response.status_code in (401, 403, 429):
+                    _gemini_breaker.trip()
+                logger.warning("%s streaming failed (HTTP %d): %s", cfg.name, exc.response.status_code, exc)
+                if yielded:
+                    obs.log_stream_generation(
+                        provider=cfg.name, model=cfg.model, prompt=prompt,
+                        response="".join(accumulated),
+                        latency_ms=(time.monotonic() - start) * 1000,
+                    )
+                    return
             except Exception as exc:
                 logger.warning("%s streaming failed: %s", cfg.name, exc)
                 if yielded:
