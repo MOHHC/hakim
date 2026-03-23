@@ -89,7 +89,7 @@ export async function streamChat(
         () => { hadContent = true },
       )
       return
-    } catch (err) {
+    } catch {
       if (signal?.aborted) return
       if (hadContent || attempt >= MAX_RETRIES) {
         onEvent({ type: 'error', message: 'Connection error. Please try again.' })

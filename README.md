@@ -10,7 +10,7 @@
 
 Hakim takes symptom descriptions in **Lebanese Arabic**, **Franco-Arab** (3ammiye), or **English**, triages urgency into GREEN / YELLOW / RED, suggests possible conditions with medical citations, and recommends next steps — all with strict safety guardrails.
 
-[Live Demo](https://frontend-opal-one-46.vercel.app) · [API Docs](docs/API.md) · [Architecture](docs/ARCHITECTURE.md) · [Safety](docs/SAFETY.md)
+[Live Demo](https://hakim46.vercel.app) · [API Docs](docs/API.md) · [Architecture](docs/ARCHITECTURE.md) · [Safety](docs/SAFETY.md)
 
 </div>
 

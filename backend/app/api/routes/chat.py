@@ -5,8 +5,6 @@ import json
 import logging
 from typing import Annotated, Literal
 
-logger = logging.getLogger(__name__)
-
 from fastapi import APIRouter, Depends
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
@@ -14,6 +12,8 @@ from pydantic import BaseModel, Field
 from app.api.dependencies import get_safety_guardrails, get_triage_engine
 from app.core.safety_guardrails import SafetyGuardrails
 from app.core.triage_engine import TriageEngine
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api", tags=["chat"])
 
