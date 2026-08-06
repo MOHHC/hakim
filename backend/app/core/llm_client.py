@@ -28,23 +28,57 @@ class ProviderConfig:
     auth_prefix: str = "Bearer"
     # Extra headers required by provider
     extra_headers: dict[str, str] = field(default_factory=dict)
+    # Additional keys for the same provider, tried in order when the active one
+    # runs out of quota.  Free-tier limits are per-key, so a spare key is often
+    # the difference between a completed batch run and a half-empty report.
+    spare_keys: list[str] = field(default_factory=list)
+    # How many times we have already rotated; bounds the search.
+    _rotations: int = field(default=0, repr=False)
 
+    def rotate_key(self) -> bool:
+        """Swap in the next spare key.  False once every key has been tried.
+
+        Rotation cycles rather than discards: a key parked for a daily quota
+        reset becomes usable again on the next run of a long-lived process.
+        """
+        if self._rotations >= len(self.spare_keys):
+            return False
+        exhausted, self.api_key = self.api_key, self.spare_keys[self._rotations]
+        self.spare_keys[self._rotations] = exhausted
+        self._rotations += 1
+        return True
+
+    def reset_key_rotation(self) -> None:
+        """Allow the key ring to be walked again (e.g. after a cooldown)."""
+        self._rotations = 0
+
+
+def _split_keys(raw: str) -> tuple[str, list[str]]:
+    """Split a comma-separated credential into (active key, spare keys)."""
+    keys = [k.strip() for k in raw.split(",") if k.strip()]
+    return (keys[0] if keys else ""), keys[1:]
+
+
+_gemini_key, _gemini_spares = _split_keys(settings.gemini_api_key)
+_groq_key, _groq_spares = _split_keys(settings.groq_api_key)
 
 GEMINI_CONFIG = ProviderConfig(
     name="gemini",
     base_url="https://generativelanguage.googleapis.com/v1beta",
-    api_key=settings.gemini_api_key,
+    api_key=_gemini_key,
     model="gemini-2.5-flash",
     # Gemini uses query-param key, not Authorization header
     auth_header="x-goog-api-key",
     auth_prefix="",
+    spare_keys=_gemini_spares,
 )
 
 GROQ_CONFIG = ProviderConfig(
     name="groq",
     base_url="https://api.groq.com/openai/v1",
-    api_key=settings.groq_api_key,
+    api_key=_groq_key,
     model="llama-3.3-70b-versatile",
+    spare_keys=_groq_spares,
 )
 
 
@@ -240,49 +274,53 @@ class LLMClient:
         max_tokens: int,
     ) -> LLMResponse:
         last_exc: Exception | None = None
-        for attempt in range(self.MAX_RETRIES):
+        attempt = 0
+        while attempt < self.MAX_RETRIES:
             try:
                 return await self._call_provider(
                     cfg, prompt, system_prompt, temperature, max_tokens
                 )
             except httpx.HTTPStatusError as exc:
                 last_exc = exc
-                # Don't retry on 429 (quota) or 401/403 (auth) — fail fast to next provider
+                # 429 (quota) and 401/403 (auth) are properties of the *key*, not
+                # the request, so retrying the same credential is pointless — but
+                # a spare key for the same provider may still have budget.
                 if exc.response.status_code in (401, 403, 429):
+                    if cfg.rotate_key():
+                        logger.warning(
+                            "%s key rejected (%d) — switching to spare key",
+                            cfg.name,
+                            exc.response.status_code,
+                        )
+                        continue  # different credential, so not a retry
                     logger.warning(
-                        "%s returned %d, skipping retries",
+                        "%s returned %d and has no spare keys left, skipping retries",
                         cfg.name,
                         exc.response.status_code,
                     )
                     if cfg.name == "gemini":
                         _gemini_breaker.trip()
                     break
-                if attempt < self.MAX_RETRIES - 1:
-                    delay = self.RETRY_BASE_DELAY * (2**attempt)
-                    logger.debug(
-                        "%s attempt %d failed, retrying in %.1fs: %s",
-                        cfg.name,
-                        attempt + 1,
-                        delay,
-                        exc,
-                    )
-                    await asyncio.sleep(delay)
+                attempt += 1
+                await self._backoff(cfg, attempt, exc)
             except (httpx.RequestError, LLMError) as exc:
                 last_exc = exc
-                if attempt < self.MAX_RETRIES - 1:
-                    delay = self.RETRY_BASE_DELAY * (2**attempt)
-                    logger.debug(
-                        "%s attempt %d failed, retrying in %.1fs: %s",
-                        cfg.name,
-                        attempt + 1,
-                        delay,
-                        exc,
-                    )
-                    await asyncio.sleep(delay)
+                attempt += 1
+                await self._backoff(cfg, attempt, exc)
 
         raise LLMError(
             f"{cfg.name} failed after {self.MAX_RETRIES} attempts: {last_exc}"
         ) from last_exc
+
+    async def _backoff(self, cfg: ProviderConfig, attempt: int, exc: Exception) -> None:
+        """Exponentially back off, unless this was the final attempt."""
+        if attempt >= self.MAX_RETRIES:
+            return
+        delay = self.RETRY_BASE_DELAY * (2 ** (attempt - 1))
+        logger.debug(
+            "%s attempt %d failed, retrying in %.1fs: %s", cfg.name, attempt, delay, exc
+        )
+        await asyncio.sleep(delay)
 
     async def _call_provider(
         self,
@@ -465,9 +503,11 @@ class LLMClient:
                 )
                 return  # provider completed the stream successfully
             except httpx.HTTPStatusError as exc:
-                # Trip circuit breaker on quota/auth errors
-                if cfg.name == "gemini" and exc.response.status_code in (401, 403, 429):
-                    _gemini_breaker.trip()
+                # Quota/auth errors are per-key: rotate to a spare if we have one,
+                # and only park the provider once every key is spent.
+                if exc.response.status_code in (401, 403, 429) and not cfg.rotate_key():
+                    if cfg.name == "gemini":
+                        _gemini_breaker.trip()
                 logger.warning(
                     "%s streaming failed (HTTP %d): %s",
                     cfg.name,

@@ -11,6 +11,9 @@ class Settings(BaseSettings):
 
     app_name: str = "Hakim"
     debug: bool = False
+    # Accept one key or several comma-separated ones. Free-tier quota is per
+    # key, so listing spares lets a batch run continue past an exhausted key
+    # instead of failing the rest of its work.
     gemini_api_key: str = ""
     groq_api_key: str = ""
     langfuse_public_key: str = ""

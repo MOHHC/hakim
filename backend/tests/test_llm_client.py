@@ -12,6 +12,7 @@ from app.core.llm_client import (
     GEMINI_CONFIG,
     GROQ_CONFIG,
     _RateLimiter,
+    _split_keys,
     _gemini_breaker,
 )
 
@@ -408,3 +409,103 @@ async def test_groq_calls_are_rate_limited(monkeypatch):
 
     assert result.provider == "groq"
     acquire.assert_awaited()
+
+
+# ---------------------------------------------------------------------------
+# Multi-key rotation — free-tier quota is per key, so spares extend a run
+# ---------------------------------------------------------------------------
+
+
+def test_split_keys_parses_a_single_key():
+    assert _split_keys("only-key") == ("only-key", [])
+
+
+def test_split_keys_parses_comma_separated_keys():
+    assert _split_keys("first, second ,third") == ("first", ["second", "third"])
+
+
+def test_split_keys_handles_empty_and_ragged_values():
+    assert _split_keys("") == ("", [])
+    assert _split_keys("  ") == ("", [])
+    assert _split_keys("a,,b,") == ("a", ["b"])
+
+
+def test_rotate_key_activates_each_spare_in_turn():
+    cfg = ProviderConfig(
+        name="groq",
+        base_url="https://x",
+        api_key="key-1",
+        model="m",
+        spare_keys=["key-2", "key-3"],
+    )
+
+    assert cfg.api_key == "key-1"
+    assert cfg.rotate_key() is True
+    assert cfg.api_key == "key-2"
+    assert cfg.rotate_key() is True
+    assert cfg.api_key == "key-3"
+    # Every key tried — the provider is genuinely out.
+    assert cfg.rotate_key() is False
+
+
+def test_rotate_key_is_a_noop_without_spares():
+    cfg = ProviderConfig(name="groq", base_url="https://x", api_key="solo", model="m")
+
+    assert cfg.rotate_key() is False
+    assert cfg.api_key == "solo"
+
+
+def test_reset_key_rotation_allows_the_ring_to_be_walked_again():
+    cfg = ProviderConfig(
+        name="groq",
+        base_url="https://x",
+        api_key="key-1",
+        model="m",
+        spare_keys=["key-2"],
+    )
+
+    assert cfg.rotate_key() is True
+    assert cfg.rotate_key() is False
+    cfg.reset_key_rotation()
+    # key-1 is back in the spare slot, so it can be tried again after a reset.
+    assert cfg.rotate_key() is True
+    assert cfg.api_key == "key-1"
+
+
+@pytest.mark.asyncio
+async def test_exhausted_groq_key_rotates_to_spare_instead_of_failing(monkeypatch):
+    """The CI failure mode: Groq 429s, but a second key still has quota."""
+    monkeypatch.setattr(GROQ_CONFIG, "spare_keys", ["groq-spare-key"])
+    monkeypatch.setattr(GROQ_CONFIG, "_rotations", 0)
+    monkeypatch.setattr(GEMINI_CONFIG, "api_key", "")  # force Groq to be used
+    client = LLMClient()
+    keys_seen: list[str] = []
+
+    async def mock_post(url, **kwargs):
+        keys_seen.append(kwargs["headers"]["Authorization"])
+        if len(keys_seen) == 1:
+            return _mock_http_response({}, status_code=429)
+        return _mock_http_response(_groq_response("recovered on spare key"))
+
+    with patch("httpx.AsyncClient.post", new_callable=AsyncMock, side_effect=mock_post):
+        result = await client.generate("chest pain")
+
+    assert result.text == "recovered on spare key"
+    assert keys_seen[0] != keys_seen[1], "must retry with a different credential"
+    assert keys_seen[1] == "Bearer groq-spare-key"
+
+
+@pytest.mark.asyncio
+async def test_all_keys_exhausted_still_fails_cleanly(monkeypatch):
+    monkeypatch.setattr(GROQ_CONFIG, "spare_keys", ["groq-spare-key"])
+    monkeypatch.setattr(GROQ_CONFIG, "_rotations", 0)
+    monkeypatch.setattr(GEMINI_CONFIG, "api_key", "")
+    client = LLMClient()
+
+    with patch(
+        "httpx.AsyncClient.post",
+        new_callable=AsyncMock,
+        return_value=_mock_http_response({}, status_code=429),
+    ):
+        with pytest.raises(LLMError, match="All providers failed"):
+            await client.generate("chest pain")
