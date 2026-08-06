@@ -11,6 +11,7 @@ from app.core.llm_client import (
     ProviderConfig,
     GEMINI_CONFIG,
     GROQ_CONFIG,
+    _RateLimiter,
     _gemini_breaker,
 )
 
@@ -20,8 +21,9 @@ def _fake_api_keys(monkeypatch):
     """Ensure provider configs have fake API keys so tests don't skip providers."""
     monkeypatch.setattr(GEMINI_CONFIG, "api_key", "fake-gemini-key")
     monkeypatch.setattr(GROQ_CONFIG, "api_key", "fake-groq-key")
-    # Disable rate limiter so it doesn't inject extra sleeps into tests
+    # Disable rate limiters so they don't inject extra sleeps into tests
     monkeypatch.setattr("app.core.llm_client._gemini_limiter.acquire", AsyncMock())
+    monkeypatch.setattr("app.core.llm_client._groq_limiter.acquire", AsyncMock())
     # Reset circuit breaker so tests don't leak state
     _gemini_breaker._tripped_at = 0.0
 
@@ -337,3 +339,72 @@ async def test_token_counts_from_groq():
     assert result.prompt_tokens == 5
     assert result.completion_tokens == 15
     assert result.total_tokens == 20
+
+
+# ---------------------------------------------------------------------------
+# Rate limiting — client-side pacing must stay under each provider's free tier
+# ---------------------------------------------------------------------------
+
+
+def test_rate_limiter_interval_derives_from_rpm():
+    assert _RateLimiter(max_rpm=10)._interval == pytest.approx(6.0)
+    assert _RateLimiter(max_rpm=30)._interval == pytest.approx(2.0)
+
+
+def test_rate_limiter_rejects_non_positive_rpm():
+    with pytest.raises(ValueError):
+        _RateLimiter(max_rpm=0)
+
+
+@pytest.mark.asyncio
+async def test_rate_limiter_paces_successive_acquires():
+    limiter = _RateLimiter(max_rpm=60)  # 1s interval
+    slept: list[float] = []
+
+    async def fake_sleep(seconds):
+        slept.append(seconds)
+
+    with patch("asyncio.sleep", new=fake_sleep):
+        await limiter.acquire()
+        await limiter.acquire()
+
+    # First acquire is free, second must wait out the interval.
+    assert len(slept) == 1
+    assert slept[0] > 0
+
+
+@pytest.mark.asyncio
+async def test_gemini_calls_are_rate_limited(monkeypatch):
+    """Gemini is the primary provider and the one that 429s first in CI."""
+    acquire = AsyncMock()
+    monkeypatch.setattr("app.core.llm_client._gemini_limiter.acquire", acquire)
+    client = LLMClient()
+
+    with patch(
+        "httpx.AsyncClient.post",
+        new_callable=AsyncMock,
+        return_value=_mock_http_response(_gemini_response()),
+    ):
+        await client.generate("test")
+
+    acquire.assert_awaited()
+
+
+@pytest.mark.asyncio
+async def test_groq_calls_are_rate_limited(monkeypatch):
+    """Groq is the fallback; unpaced fallback traffic exhausted its quota too."""
+    acquire = AsyncMock()
+    monkeypatch.setattr("app.core.llm_client._groq_limiter.acquire", acquire)
+    client = LLMClient()
+
+    async def mock_post(url, **kwargs):
+        if "generativelanguage" in url:
+            return _mock_http_response({}, status_code=429)
+        return _mock_http_response(_groq_response())
+
+    with patch("httpx.AsyncClient.post", new_callable=AsyncMock, side_effect=mock_post):
+        with patch("asyncio.sleep", new_callable=AsyncMock):
+            result = await client.generate("test")
+
+    assert result.provider == "groq"
+    acquire.assert_awaited()

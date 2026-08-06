@@ -119,14 +119,16 @@ class _ResponseCache:
 
 
 # ---------------------------------------------------------------------------
-# Rate Limiter — token bucket for Gemini free tier (15 RPM)
+# Rate Limiter — client-side pacing to stay under provider free-tier limits
 # ---------------------------------------------------------------------------
 
 
 class _RateLimiter:
     """Async token bucket rate limiter."""
 
-    def __init__(self, max_rpm: int = 15) -> None:
+    def __init__(self, max_rpm: int) -> None:
+        if max_rpm <= 0:
+            raise ValueError(f"max_rpm must be positive, got {max_rpm}")
         self._interval = 60.0 / max_rpm  # seconds between requests
         self._lock = asyncio.Lock()
         self._last_request: float = 0.0
@@ -170,9 +172,21 @@ class _CircuitBreaker:
 
 
 # Module-level singletons
+#
+# Pacing must stay *under* each provider's free-tier RPM, not near it: the old
+# Gemini setting of 14 RPM sat above gemini-2.5-flash's free-tier ceiling of 10,
+# so batch workloads (the eval suite) reliably 429'd about a minute in.  Groq had
+# no limiter at all, so every fallback request went out unpaced.  Both are
+# configurable because the ceilings differ per model and per billing tier.
 _cache = _ResponseCache()
-_gemini_limiter = _RateLimiter(max_rpm=14)  # Stay safely under 15 RPM
-_gemini_breaker = _CircuitBreaker(cooldown_seconds=60.0)
+_gemini_limiter = _RateLimiter(max_rpm=settings.gemini_rpm)
+_groq_limiter = _RateLimiter(max_rpm=settings.groq_rpm)
+_gemini_breaker = _CircuitBreaker(cooldown_seconds=settings.provider_cooldown_seconds)
+
+
+def _limiter_for(cfg: ProviderConfig) -> _RateLimiter:
+    """Return the pacing limiter for a provider."""
+    return _gemini_limiter if cfg.name == "gemini" else _groq_limiter
 
 
 class LLMClient:
@@ -278,9 +292,7 @@ class LLMClient:
         temperature: float,
         max_tokens: int,
     ) -> LLMResponse:
-        # Rate limit Gemini calls
-        if cfg.name == "gemini":
-            await _gemini_limiter.acquire()
+        await _limiter_for(cfg).acquire()
 
         start = time.monotonic()
 
@@ -436,9 +448,7 @@ class LLMClient:
             accumulated: list[str] = []
             start = time.monotonic()
             try:
-                # Rate limit Gemini streaming calls too
-                if cfg.name == "gemini":
-                    await _gemini_limiter.acquire()
+                await _limiter_for(cfg).acquire()
 
                 async for chunk in stream_method(
                     cfg, prompt, system_prompt, temperature, max_tokens

@@ -18,5 +18,13 @@ class Settings(BaseSettings):
     langfuse_host: str = "https://us.cloud.langfuse.com"
     allowed_origins: str = "http://localhost:3000"
 
+    # Client-side pacing, in requests per minute.  Defaults target the free
+    # tiers of gemini-2.5-flash (10 RPM) and llama-3.3-70b-versatile (30 RPM);
+    # raise them if the deployment has paid quota.
+    gemini_rpm: int = 10
+    groq_rpm: int = 30
+    # How long to skip a provider after it returns 429/401/403.
+    provider_cooldown_seconds: float = 60.0
+
 
 settings = Settings()
