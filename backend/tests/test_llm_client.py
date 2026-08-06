@@ -403,9 +403,11 @@ async def test_groq_calls_are_rate_limited(monkeypatch):
             return _mock_http_response({}, status_code=429)
         return _mock_http_response(_groq_response())
 
-    with patch("httpx.AsyncClient.post", new_callable=AsyncMock, side_effect=mock_post):
-        with patch("asyncio.sleep", new_callable=AsyncMock):
-            result = await client.generate("test")
+    with (
+        patch("httpx.AsyncClient.post", new_callable=AsyncMock, side_effect=mock_post),
+        patch("asyncio.sleep", new_callable=AsyncMock),
+    ):
+        result = await client.generate("test")
 
     assert result.provider == "groq"
     acquire.assert_awaited()

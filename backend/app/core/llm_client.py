@@ -505,8 +505,9 @@ class LLMClient:
             except httpx.HTTPStatusError as exc:
                 # Quota/auth errors are per-key: rotate to a spare if we have one,
                 # and only park the provider once every key is spent.
-                if exc.response.status_code in (401, 403, 429) and not cfg.rotate_key():
-                    if cfg.name == "gemini":
+                if exc.response.status_code in (401, 403, 429):
+                    rotated = cfg.rotate_key()
+                    if not rotated and cfg.name == "gemini":
                         _gemini_breaker.trip()
                 logger.warning(
                     "%s streaming failed (HTTP %d): %s",
