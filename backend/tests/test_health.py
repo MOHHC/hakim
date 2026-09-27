@@ -26,3 +26,20 @@ def test_health_probe_reports_dead_providers_as_degraded(monkeypatch):
     assert body["status"] == "degraded"
     assert body["components"]["llm"]["status"] == "error"
     assert "403" in body["components"]["llm_gemini"]["detail"]
+
+
+def test_rate_limited_response_keeps_cors_headers():
+    """A 429 without CORS headers reaches the browser as a network error."""
+    from app.api.middleware.rate_limiter import default_limiter
+    from app.config import settings
+
+    origin = settings.allowed_origins.split(",")[0]
+    default_limiter._buckets.clear()
+    try:
+        for _ in range(15):
+            last = client.get("/api/health", headers={"Origin": origin})
+        assert last.status_code == 429
+        assert last.headers.get("access-control-allow-origin") == origin
+    finally:
+        # Don't leave the shared limiter exhausted for later tests
+        default_limiter._buckets.clear()

@@ -34,8 +34,15 @@ app = FastAPI(
 )
 
 # ---------------------------------------------------------------------------
-# Middleware  (order matters: CORS first so preflight bypasses rate limiter)
+# Middleware
+#
+# Starlette runs the middleware added LAST first, so CORS is added last to wrap
+# everything: preflights are answered before the rate limiter, and the limiter's
+# 429 still carries CORS headers.  With the order reversed the browser saw a
+# 429 as a CORS failure and showed "Connection error" instead of "please wait".
 # ---------------------------------------------------------------------------
+
+app.add_middleware(RateLimitMiddleware)
 
 app.add_middleware(
     CORSMiddleware,
@@ -44,8 +51,6 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
-app.add_middleware(RateLimitMiddleware)
 
 # ---------------------------------------------------------------------------
 # Routers
