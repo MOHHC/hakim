@@ -66,7 +66,7 @@ GEMINI_CONFIG = ProviderConfig(
     name="gemini",
     base_url="https://generativelanguage.googleapis.com/v1beta",
     api_key=_gemini_key,
-    model="gemini-2.5-flash",
+    model=settings.gemini_model,
     # Gemini uses query-param key, not Authorization header
     auth_header="x-goog-api-key",
     auth_prefix="",
@@ -77,7 +77,7 @@ GROQ_CONFIG = ProviderConfig(
     name="groq",
     base_url="https://api.groq.com/openai/v1",
     api_key=_groq_key,
-    model="llama-3.3-70b-versatile",
+    model=settings.groq_model,
     spare_keys=_groq_spares,
 )
 
@@ -184,7 +184,7 @@ class _RateLimiter:
 
 
 class _CircuitBreaker:
-    """Skip a provider for a cooldown period after fatal errors (429, 401, 403)."""
+    """Skip a provider for a cooldown period after fatal errors (401/403/404/429)."""
 
     def __init__(self, cooldown_seconds: float = 60.0) -> None:
         self._cooldown = cooldown_seconds
@@ -216,11 +216,89 @@ _cache = _ResponseCache()
 _gemini_limiter = _RateLimiter(max_rpm=settings.gemini_rpm)
 _groq_limiter = _RateLimiter(max_rpm=settings.groq_rpm)
 _gemini_breaker = _CircuitBreaker(cooldown_seconds=settings.provider_cooldown_seconds)
+_groq_breaker = _CircuitBreaker(cooldown_seconds=settings.provider_cooldown_seconds)
+
+# Key-level failures: the credential is rejected or out of quota.
+_KEY_ERRORS = (401, 403, 429)
+# Request-level failures that the same request will never get past, so retrying
+# only adds latency to a user who is waiting on a reply.  404 usually means the
+# model is retired or not enabled for the account, which is a config problem
+# worth parking the provider for.
+_NON_RETRYABLE = (400, 404, 422)
 
 
 def _limiter_for(cfg: ProviderConfig) -> _RateLimiter:
     """Return the pacing limiter for a provider."""
     return _gemini_limiter if cfg.name == "gemini" else _groq_limiter
+
+
+def _breaker_for(cfg: ProviderConfig) -> _CircuitBreaker:
+    """Return the circuit breaker for a provider."""
+    return _gemini_breaker if cfg.name == "gemini" else _groq_breaker
+
+
+def _error_detail(exc: httpx.HTTPStatusError) -> str:
+    """Best-effort snippet of the provider's error body, for the logs.
+
+    Provider error bodies name the actual cause ("model not found", "API key
+    expired") where the status code alone does not.
+    """
+    try:
+        return exc.response.text[:300]
+    except Exception:  # streamed bodies may not have been read
+        return ""
+
+
+@dataclass
+class ProviderStatus:
+    ok: bool
+    detail: str
+
+
+_probe_cache: tuple[float, dict[str, ProviderStatus]] | None = None
+_PROBE_TTL_SECONDS = 300.0
+
+
+async def probe_providers(force: bool = False) -> dict[str, ProviderStatus]:
+    """Check each configured provider's key and model with a free metadata call.
+
+    Having a key set says nothing about whether it works (a revoked key once
+    left chat fully down while health reported "ok"), so this asks each provider
+    to look up the configured model.  Results are cached for five minutes so
+    health checks don't eat into free-tier request quotas.
+    """
+    global _probe_cache
+    now = time.monotonic()
+    if not force and _probe_cache and now - _probe_cache[0] < _PROBE_TTL_SECONDS:
+        return _probe_cache[1]
+
+    results: dict[str, ProviderStatus] = {}
+    async with httpx.AsyncClient(timeout=10.0) as client:
+        for cfg in (GEMINI_CONFIG, GROQ_CONFIG):
+            if not cfg.api_key:
+                results[cfg.name] = ProviderStatus(False, "no API key configured")
+                continue
+            headers = (
+                {"x-goog-api-key": cfg.api_key}
+                if cfg.name == "gemini"
+                else {"Authorization": f"Bearer {cfg.api_key}"}
+            )
+            try:
+                resp = await client.get(
+                    f"{cfg.base_url}/models/{cfg.model}", headers=headers
+                )
+            except httpx.RequestError as exc:
+                results[cfg.name] = ProviderStatus(False, f"unreachable: {exc}"[:120])
+                continue
+            if resp.status_code == 200:
+                results[cfg.name] = ProviderStatus(True, f"{cfg.model} reachable")
+            else:
+                results[cfg.name] = ProviderStatus(
+                    False, f"{cfg.model}: HTTP {resp.status_code} {resp.text[:80]}"
+                )
+
+    _probe_cache = (now, results)
+    return results
 
 
 class LLMClient:
@@ -248,9 +326,9 @@ class LLMClient:
         for provider_cfg in (GEMINI_CONFIG, GROQ_CONFIG):
             if not provider_cfg.api_key:
                 continue
-            # Skip Gemini if circuit breaker is open (recent 429/auth failure)
-            if provider_cfg.name == "gemini" and _gemini_breaker.is_open():
-                logger.info("Skipping Gemini — circuit breaker open")
+            # Skip a provider whose circuit breaker is open (recent fatal error)
+            if _breaker_for(provider_cfg).is_open():
+                logger.info("Skipping %s — circuit breaker open", provider_cfg.name)
                 continue
             try:
                 resp = await self._generate_with_retry(
@@ -285,21 +363,33 @@ class LLMClient:
                 # 429 (quota) and 401/403 (auth) are properties of the *key*, not
                 # the request, so retrying the same credential is pointless — but
                 # a spare key for the same provider may still have budget.
-                if exc.response.status_code in (401, 403, 429):
+                status = exc.response.status_code
+                if status in _KEY_ERRORS:
                     if cfg.rotate_key():
                         logger.warning(
                             "%s key rejected (%d) — switching to spare key",
                             cfg.name,
-                            exc.response.status_code,
+                            status,
                         )
                         continue  # different credential, so not a retry
-                    logger.warning(
-                        "%s returned %d and has no spare keys left, skipping retries",
+                    logger.error(
+                        "%s returned %d and has no spare keys left, skipping retries: %s",
                         cfg.name,
-                        exc.response.status_code,
+                        status,
+                        _error_detail(exc),
                     )
-                    if cfg.name == "gemini":
-                        _gemini_breaker.trip()
+                    _breaker_for(cfg).trip()
+                    break
+                if status in _NON_RETRYABLE:
+                    logger.error(
+                        "%s rejected the request (%d, model=%s), not retrying: %s",
+                        cfg.name,
+                        status,
+                        cfg.model,
+                        _error_detail(exc),
+                    )
+                    if status == 404:
+                        _breaker_for(cfg).trip()
                     break
                 attempt += 1
                 await self._backoff(cfg, attempt, exc)
@@ -478,9 +568,9 @@ class LLMClient:
         ]:
             if not cfg.api_key:
                 continue
-            # Skip Gemini if circuit breaker is open (recent 429/auth failure)
-            if cfg.name == "gemini" and _gemini_breaker.is_open():
-                logger.info("Skipping Gemini streaming — circuit breaker open")
+            # Skip a provider whose circuit breaker is open (recent fatal error)
+            if _breaker_for(cfg).is_open():
+                logger.info("Skipping %s streaming — circuit breaker open", cfg.name)
                 continue
             yielded = False
             accumulated: list[str] = []
@@ -505,10 +595,12 @@ class LLMClient:
             except httpx.HTTPStatusError as exc:
                 # Quota/auth errors are per-key: rotate to a spare if we have one,
                 # and only park the provider once every key is spent.
-                if exc.response.status_code in (401, 403, 429):
-                    rotated = cfg.rotate_key()
-                    if not rotated and cfg.name == "gemini":
-                        _gemini_breaker.trip()
+                status = exc.response.status_code
+                if status in _KEY_ERRORS:
+                    if not cfg.rotate_key():
+                        _breaker_for(cfg).trip()
+                elif status == 404:
+                    _breaker_for(cfg).trip()
                 logger.warning(
                     "%s streaming failed (HTTP %d): %s",
                     cfg.name,

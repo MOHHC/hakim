@@ -11,7 +11,7 @@ from enum import Enum
 from typing import Any
 
 from app.core.arabic_processor import ArabicProcessor, LexiconMatch
-from app.core.llm_client import LLMClient
+from app.core.llm_client import LLMClient, LLMError
 from app.core import observability as obs
 from app.core.rag_pipeline import RAGPipeline, RetrievalResult
 
@@ -32,6 +32,14 @@ _EMERGENCY_SUBSTRINGS = [
     "\u0633\u0643\u062a\u0629",  # stroke (sukta)
     "\u0634\u0644\u0644",  # paralysis
     "\u062a\u0634\u0646\u062c",  # convulsion
+    "\u0648\u062c\u0639 \u0635\u062f\u0631",  # chest pain (waja3 sadr)
+    "\u0648\u062c\u0639 \u0628\u0635\u062f\u0631",  # pain in (my) chest
+    "\u0648\u062c\u0639 \u0628\u0627\u0644\u0635\u062f\u0631",  # pain in the chest
+    "\u0623\u0644\u0645 \u0635\u062f\u0631",  # chest pain (MSA)
+    "\u0623\u0644\u0645 \u0641\u064a \u0627\u0644\u0635\u062f\u0631",  # pain in the chest (MSA)
+    "\u0645\u0634 \u0642\u0627\u062f\u0631 \u0627\u062a\u0646\u0641\u0633",  # I can't breathe
+    "\u0645\u0627 \u0639\u0645 \u0628\u0642\u062f\u0631 \u0627\u062a\u0646\u0641\u0633",  # I can't breathe
+    "\u0645\u0627 \u0639\u0645 \u0627\u0642\u062f\u0631 \u0627\u062a\u0646\u0641\u0633",  # I can't breathe
     # Franco-Arab / English
     "chest pain",
     "cant breathe",
@@ -160,6 +168,115 @@ _EMERGENCY_DISCLAIMER_FRANCO = (
     "hal a3rad 5atire — ru7 3al taware2 hala2 aw ettesel 140!"
 )
 
+_SYSTEM_PROMPT_EN = (
+    "You are Hakim, a warm and trusted medical triage assistant. "
+    "The patient may write in Lebanese Arabic, Franco-Arab, or English, but you "
+    "reply in clear, simple English. "
+    "Rules: (1) Never give a definitive diagnosis — say 'this could be' or "
+    "'one possibility is'. (2) Never name medications or dosages. "
+    "(3) Do NOT add any disclaimer — the app already shows one."
+)
+
+_RESPONSE_PROMPT_EN = (
+    "Write a warm, concise reply in plain English.\n\n"
+    "Patient symptoms: {symptoms_text}\nTriage level: {triage_level}\n"
+    "Possible conditions: {conditions}\nRecommended actions: {actions}\n\n"
+    "Rules:\n- Start with empathy, then get to the point\n"
+    "- Say 'this could be' before conditions (never diagnose)\n"
+    "- Be specific about what to do next\n- No medication names or dosages\n"
+    "- Do NOT add any disclaimer or warning, the app handles that\n"
+    "- 2-3 sentences max\n\nReply:"
+)
+
+_CLARIFICATION_PROMPT_EN = (
+    'A patient said: "{query}"\n\n'
+    "Extracted symptoms: {symptoms_text}\n\n"
+    "The symptoms are too vague for assessment. "
+    "Write ONE short clarifying question in plain English "
+    "to better understand the situation. "
+    "Write only the question, no preamble:"
+)
+
+_DISCLAIMER_EN = (
+    "\u26a0\ufe0f This information does not replace a doctor. "
+    "If things get worse, see a doctor."
+)
+_EMERGENCY_DISCLAIMER_EN = (
+    "\U0001f6a8 These symptoms are serious \u2014 go to the ER now or call the "
+    "Red Cross on 140!"
+)
+
+# ---------------------------------------------------------------------------
+# Offline fallback copy
+#
+# Used when every LLM provider is unavailable.  Without a model we cannot tell
+# a cold from something worse, so non-emergencies get the conservative YELLOW
+# advice ("see a doctor soon") rather than an error the patient can't act on.
+# ---------------------------------------------------------------------------
+
+_FALLBACK_TEXT: dict[str, dict[str, str]] = {
+    "arabic": {
+        "YELLOW": (
+            "آسف، حكيم مش قادر يحلل أعراضك بالتفصيل هلق. "
+            "للاحتياط، روح شوف دكتور خلال يوم أو يومين. "
+            "وإذا الأعراض زادت أو صارت قوية، روح عالطوارئ أو اتصل بالصليب الأحمر على 140."
+        ),
+        "RED": (
+            "هالأعراض ممكن تكون خطيرة. روح عالطوارئ هلق أو اتصل بالصليب الأحمر على 140. "
+            "ما تستنى."
+        ),
+        "CLARIFY": "خبرني أكتر: شو الأعراض يلي عم تحس فيها، من إيمتى، وقديش قوية؟",
+    },
+    "franco": {
+        "YELLOW": (
+            "sorry, Hakim msh 2ader y7allel l a3rad bel tafasil hala2. "
+            "lal e7tiyat, ru7 shuf doctor khilel yom aw yomen. "
+            "w eza l a3rad zedet aw saret 2awiye, ru7 3al taware2 aw ettesel "
+            "bel Salib l A7mar 3ala 140."
+        ),
+        "RED": (
+            "hal a3rad momken tkun 5atire. ru7 3al taware2 hala2 aw ettesel "
+            "bel Salib l A7mar 3ala 140. ma testanna."
+        ),
+        "CLARIFY": "khabberne aktar: shu l a3rad li 3am t7ess fiya, men emta, w 2adesh 2awiye?",
+    },
+    "english": {
+        "YELLOW": (
+            "Sorry, Hakim can't analyse your symptoms in detail right now. "
+            "To be safe, see a doctor within a day or two. If your symptoms get "
+            "worse or become severe, go to the ER or call the Red Cross on 140."
+        ),
+        "RED": (
+            "These symptoms could be serious. Go to the ER now or call the Red "
+            "Cross on 140. Do not wait."
+        ),
+        "CLARIFY": (
+            "Can you tell me more: what symptoms are you feeling, since when, "
+            "and how bad are they?"
+        ),
+    },
+}
+
+_FALLBACK_ACTIONS: dict[str, dict[str, list[str]]] = {
+    "arabic": {
+        "YELLOW": ["شوف دكتور خلال 24-48 ساعة"],
+        "RED": ["اتصل بالصليب الأحمر على 140", "روح عالطوارئ هلق"],
+    },
+    "franco": {
+        "YELLOW": ["shuf doctor khilel 24-48 se3a"],
+        "RED": ["ettesel bel Salib l A7mar 3ala 140", "ru7 3al taware2 hala2"],
+    },
+    "english": {
+        "YELLOW": ["See a doctor within 24-48 hours"],
+        "RED": ["Call the Red Cross on 140", "Go to the ER now"],
+    },
+}
+
+# How many earlier user turns to fold into the current query.  Enough to carry
+# an answer to "since when?" back to the symptom it refers to, without letting
+# a long chat drown the latest message.
+_HISTORY_TURNS = 4
+
 
 # ---------------------------------------------------------------------------
 # Data classes
@@ -205,19 +322,66 @@ class TriageResult:
 class TriageEngine:
     """Multi-step triage agent: extract -> clarify -> retrieve -> classify -> respond."""
 
+    # ``script`` is the output mode: "arabic" (Lebanese Arabic script),
+    # "franco" (Franco-Arab, Latin letters) or "english".
+
     @staticmethod
     def _get_response_prompt(script: str = "arabic") -> str:
+        if script == "english":
+            return _RESPONSE_PROMPT_EN
         return _RESPONSE_PROMPT_FRANCO if script == "franco" else _RESPONSE_PROMPT
 
     @staticmethod
     def _get_system_prompt(script: str = "arabic") -> str:
+        if script == "english":
+            return _SYSTEM_PROMPT_EN
         return _SYSTEM_PROMPT_FRANCO if script == "franco" else _SYSTEM_PROMPT
 
     @staticmethod
+    def _get_clarification_prompt(script: str = "arabic") -> str:
+        if script == "english":
+            return _CLARIFICATION_PROMPT_EN
+        return (
+            _CLARIFICATION_PROMPT_FRANCO
+            if script == "franco"
+            else _CLARIFICATION_PROMPT
+        )
+
+    @staticmethod
+    def _get_output_script(script: str = "arabic") -> str:
+        if script == "english":
+            return "English"
+        return (
+            "Franco-Arab (Latin letters)" if script == "franco" else "Lebanese Arabic"
+        )
+
+    @staticmethod
     def _get_disclaimer(script: str = "arabic", emergency: bool = False) -> str:
+        if script == "english":
+            return _EMERGENCY_DISCLAIMER_EN if emergency else _DISCLAIMER_EN
         if script == "franco":
             return _EMERGENCY_DISCLAIMER_FRANCO if emergency else _DISCLAIMER_FRANCO
         return _EMERGENCY_DISCLAIMER if emergency else _DISCLAIMER
+
+    @staticmethod
+    def _fallback_text(script: str, kind: str) -> str:
+        return _FALLBACK_TEXT.get(script, _FALLBACK_TEXT["arabic"])[kind]
+
+    @staticmethod
+    def _fallback_actions(script: str, level: TriageLevel) -> list[str]:
+        key = "RED" if level == TriageLevel.RED else "YELLOW"
+        return list(_FALLBACK_ACTIONS.get(script, _FALLBACK_ACTIONS["arabic"])[key])
+
+    @staticmethod
+    def _with_history(query: str, history: list[str] | None) -> str:
+        """Fold recent user turns into the query so follow-ups keep their context.
+
+        A reply like "since two days" means nothing on its own; triaging it
+        together with the earlier "I have a headache" is what the patient meant.
+        """
+        if not history:
+            return query
+        return "\n".join([*history[-_HISTORY_TURNS:], query])
 
     def __init__(
         self,
@@ -281,7 +445,11 @@ class TriageEngine:
             if _EMERGENCY_RE.search(query):
                 logger.info("Step 1b -- emergency detected, fast-path RED")
                 obs.set_step("emergency-response")
-                result = await self._emergency_response(symptoms_text, total_tokens)
+                try:
+                    result = await self._emergency_response(symptoms_text, total_tokens)
+                except LLMError as exc:
+                    logger.error("Emergency reply unavailable, using fallback: %s", exc)
+                    result = self._fallback_result(TriageLevel.RED)
                 obs.end_trace(
                     trace,
                     output={
@@ -296,19 +464,23 @@ class TriageEngine:
             if len(symptoms) == 0 and len(query.split()) < 2:
                 logger.info("Step 2 -- vague query, requesting clarification")
                 obs.set_step("clarification")
-                clarify_resp = await self._llm.generate(
-                    prompt=_CLARIFICATION_PROMPT.format(
-                        query=query,
-                        symptoms_text=symptoms_text
-                        if symptom_labels
-                        else "nothing specific",
-                    ),
-                    system_prompt=_SYSTEM_PROMPT,
-                    temperature=0.4,
-                    max_tokens=1024,
-                )
-                total_tokens += clarify_resp.total_tokens
-                q = clarify_resp.text.strip()
+                try:
+                    clarify_resp = await self._llm.generate(
+                        prompt=_CLARIFICATION_PROMPT.format(
+                            query=query,
+                            symptoms_text=symptoms_text
+                            if symptom_labels
+                            else "nothing specific",
+                        ),
+                        system_prompt=_SYSTEM_PROMPT,
+                        temperature=0.4,
+                        max_tokens=1024,
+                    )
+                    total_tokens += clarify_resp.total_tokens
+                    q = clarify_resp.text.strip()
+                except LLMError as exc:
+                    logger.error("Clarification unavailable, using fallback: %s", exc)
+                    q = self._fallback_text("arabic", "CLARIFY")
                 result = TriageResult(
                     triage_level=TriageLevel.GREEN,
                     response_text=q,
@@ -334,16 +506,24 @@ class TriageEngine:
 
             # Step 4: Triage classification
             obs.set_step("classification")
-            classify_resp = await self._llm.generate(
-                prompt=_TRIAGE_PROMPT.format(
-                    symptoms_text=symptoms_text,
-                    context=context,
-                    output_script="Lebanese Arabic",
-                ),
-                system_prompt=_SYSTEM_PROMPT,
-                temperature=0.1,
-                max_tokens=2048,
-            )
+            try:
+                classify_resp = await self._llm.generate(
+                    prompt=_TRIAGE_PROMPT.format(
+                        symptoms_text=symptoms_text,
+                        context=context,
+                        output_script="Lebanese Arabic",
+                    ),
+                    system_prompt=_SYSTEM_PROMPT,
+                    temperature=0.1,
+                    max_tokens=2048,
+                )
+            except LLMError as exc:
+                logger.error("Classification unavailable, using fallback: %s", exc)
+                result = self._fallback_result(TriageLevel.YELLOW)
+                obs.end_trace(
+                    trace, output={"triage_level": "YELLOW", "llm_available": False}
+                )
+                return result
             total_tokens += classify_resp.total_tokens
             triage_level, conditions, actions = self._parse_triage_json(
                 classify_resp.text
@@ -352,18 +532,29 @@ class TriageEngine:
 
             # Step 5: Response generation in Lebanese Arabic
             obs.set_step("response")
-            response_resp = await self._llm.generate(
-                prompt=_RESPONSE_PROMPT.format(
-                    symptoms_text=symptoms_text,
-                    triage_level=triage_level.value,
-                    conditions=", ".join(conditions) if conditions else "unspecified",
-                    actions=", ".join(actions) if actions else "follow up with doctor",
-                ),
-                system_prompt=_SYSTEM_PROMPT,
-                temperature=0.4,
-                max_tokens=2048,
-            )
-            total_tokens += response_resp.total_tokens
+            try:
+                response_resp = await self._llm.generate(
+                    prompt=_RESPONSE_PROMPT.format(
+                        symptoms_text=symptoms_text,
+                        triage_level=triage_level.value,
+                        conditions=", ".join(conditions)
+                        if conditions
+                        else "unspecified",
+                        actions=", ".join(actions)
+                        if actions
+                        else "follow up with doctor",
+                    ),
+                    system_prompt=_SYSTEM_PROMPT,
+                    temperature=0.4,
+                    max_tokens=2048,
+                )
+                total_tokens += response_resp.total_tokens
+                response_text = response_resp.text.strip()
+            except LLMError as exc:
+                logger.error("Response generation unavailable, using fallback: %s", exc)
+                response_text = self._fallback_text(
+                    "arabic", "RED" if triage_level == TriageLevel.RED else "YELLOW"
+                )
 
             disclaimer = (
                 _EMERGENCY_DISCLAIMER
@@ -372,7 +563,7 @@ class TriageEngine:
             )
             result = TriageResult(
                 triage_level=triage_level,
-                response_text=response_resp.text.strip(),
+                response_text=response_text,
                 possible_conditions=conditions,
                 recommended_actions=actions,
                 sources=[r.to_dict() for r in retrieval_results],
@@ -399,31 +590,42 @@ class TriageEngine:
         query: str,
         prior_symptoms: list | None = None,
         response_script: str = "arabic",
+        history: list[str] | None = None,
     ) -> AsyncGenerator[dict, None]:
         """Stream triage pipeline, yielding SSE-ready dicts.
+
+        ``response_script`` selects the output: "arabic", "franco" or "english".
+        ``history`` holds the patient's earlier messages in this conversation,
+        oldest first, so follow-up answers are triaged with their context.
+
+        If every LLM provider is down the stream still completes, using rule-based
+        triage and fixed copy, because a patient with symptoms needs next steps
+        more than an error message.
 
         Event sequence:
             triage_classified → chunk (×N) → complete
         """
         total_tokens = 0
+        script = response_script
 
         trace = obs.start_trace(
             name="triage-stream",
             metadata={"query_length": len(query), "endpoint": "/api/chat"},
         )
 
-        # Step 1: Symptom extraction
+        # Step 1: Symptom extraction, over the whole conversation so far
+        context_query = self._with_history(query, history)
         symptoms = (
             prior_symptoms
             if prior_symptoms is not None
-            else self._proc.extract_symptoms(query)
+            else self._proc.extract_symptoms(context_query)
         )
         symptom_labels = [
             s.english_medical_term or s.msa_equivalent
             for s in symptoms
             if s.english_medical_term or s.msa_equivalent
         ]
-        symptoms_text = ", ".join(symptom_labels) if symptom_labels else query
+        symptoms_text = ", ".join(symptom_labels) if symptom_labels else context_query
 
         # Safety refusal (out-of-scope)
         if _REFUSAL_RE.search(query):
@@ -455,41 +657,38 @@ class TriageEngine:
             yield complete_event
             return
 
-        # Emergency fast-path → instant RED
+        # Emergency fast-path → instant RED.  Only the latest message counts:
+        # an emergency mentioned earlier was already escalated on that turn.
         if _EMERGENCY_RE.search(query):
             obs.set_step("emergency-response")
+            actions = self._fallback_actions(script, TriageLevel.RED)
             yield {
                 "type": "triage_classified",
                 "triage_level": "RED",
                 "possible_conditions": ["emergency"],
-                "recommended_actions": [
-                    "call ambulance immediately — 140",
-                    "go to ER now",
-                ],
+                "recommended_actions": actions,
                 "needs_clarification": False,
             }
-            async for chunk in self._llm.generate_stream(
-                prompt=self._get_response_prompt(response_script).format(
+            async for chunk in self._stream_or_fallback(
+                prompt=self._get_response_prompt(script).format(
                     symptoms_text=symptoms_text,
                     triage_level="RED",
                     conditions="possible emergency",
-                    actions="call ambulance immediately — 140",
+                    actions="go to the ER or call the Red Cross on 140 immediately",
                 ),
-                system_prompt=self._get_system_prompt(response_script),
+                system_prompt=self._get_system_prompt(script),
                 temperature=0.1,
                 max_tokens=1024,
+                fallback=self._fallback_text(script, "RED"),
             ):
                 yield {"type": "chunk", "content": chunk}
             complete_event = {
                 "type": "complete",
                 "triage_level": "RED",
                 "possible_conditions": ["emergency"],
-                "recommended_actions": [
-                    "call ambulance immediately — 140",
-                    "go to ER now",
-                ],
+                "recommended_actions": actions,
                 "sources": [],
-                "disclaimer": self._get_disclaimer(response_script, emergency=True),
+                "disclaimer": self._get_disclaimer(script, emergency=True),
                 "needs_clarification": False,
                 "follow_up_question": None,
             }
@@ -500,25 +699,24 @@ class TriageEngine:
             return
 
         # Step 2: Clarification
-        if len(symptoms) == 0 and len(query.split()) < 2:
+        if len(symptoms) == 0 and len(context_query.split()) < 2:
             obs.set_step("clarification")
-            clarify_prompt = (
-                _CLARIFICATION_PROMPT_FRANCO
-                if response_script == "franco"
-                else _CLARIFICATION_PROMPT
-            )
-            clarify_resp = await self._llm.generate(
-                prompt=clarify_prompt.format(
-                    query=query,
-                    symptoms_text=symptoms_text
-                    if symptom_labels
-                    else "nothing specific",
-                ),
-                system_prompt=self._get_system_prompt(response_script),
-                temperature=0.4,
-                max_tokens=1024,
-            )
-            q = clarify_resp.text.strip()
+            try:
+                clarify_resp = await self._llm.generate(
+                    prompt=self._get_clarification_prompt(script).format(
+                        query=context_query,
+                        symptoms_text=symptoms_text
+                        if symptom_labels
+                        else "nothing specific",
+                    ),
+                    system_prompt=self._get_system_prompt(script),
+                    temperature=0.4,
+                    max_tokens=1024,
+                )
+                q = clarify_resp.text.strip()
+            except LLMError as exc:
+                logger.error("Clarification unavailable, using fallback: %s", exc)
+                q = self._fallback_text(script, "CLARIFY")
             yield {
                 "type": "triage_classified",
                 "triage_level": "GREEN",
@@ -534,7 +732,7 @@ class TriageEngine:
                 "possible_conditions": [],
                 "recommended_actions": [],
                 "sources": [],
-                "disclaimer": self._get_disclaimer(response_script),
+                "disclaimer": self._get_disclaimer(script),
                 "needs_clarification": True,
                 "follow_up_question": q,
             }
@@ -547,28 +745,40 @@ class TriageEngine:
         # Step 3: Knowledge retrieval
         retrieval_results: list[RetrievalResult] = []
         if self._rag is not None:
-            retrieval_results = await self._rag.retrieve(query, symptoms=symptoms)
+            retrieval_results = await self._rag.retrieve(
+                context_query, symptoms=symptoms
+            )
         context = self._format_context(retrieval_results)
 
         # Step 4: Classification
         obs.set_step("classification")
-        classify_resp = await self._llm.generate(
-            prompt=_TRIAGE_PROMPT.format(
-                symptoms_text=symptoms_text,
-                context=context,
-                output_script="Franco-Arab (Latin letters)"
-                if response_script == "franco"
-                else "Lebanese Arabic",
-            ),
-            system_prompt=_SYSTEM_PROMPT,
-            temperature=0.1,
-            max_tokens=2048,
-        )
-        total_tokens += classify_resp.total_tokens
-        triage_level, conditions, actions = self._parse_triage_json(classify_resp.text)
+        llm_available = True
+        try:
+            classify_resp = await self._llm.generate(
+                prompt=_TRIAGE_PROMPT.format(
+                    symptoms_text=symptoms_text,
+                    context=context,
+                    output_script=self._get_output_script(script),
+                ),
+                system_prompt=_SYSTEM_PROMPT,
+                temperature=0.1,
+                max_tokens=2048,
+            )
+            total_tokens += classify_resp.total_tokens
+            triage_level, conditions, actions = self._parse_triage_json(
+                classify_resp.text
+            )
+        except LLMError as exc:
+            # Emergencies already took the fast path above, so the conservative
+            # default here is "see a doctor soon".
+            logger.error("Classification unavailable, using fallback: %s", exc)
+            llm_available = False
+            triage_level = TriageLevel.YELLOW
+            conditions = []
+            actions = self._fallback_actions(script, triage_level)
 
         is_emergency = triage_level == TriageLevel.RED
-        disclaimer = self._get_disclaimer(response_script, emergency=is_emergency)
+        disclaimer = self._get_disclaimer(script, emergency=is_emergency)
 
         # Emit classification before text starts streaming
         yield {
@@ -581,17 +791,24 @@ class TriageEngine:
 
         # Step 5: Stream response generation
         obs.set_step("stream-response")
-        async for chunk in self._llm.generate_stream(
-            prompt=self._get_response_prompt(response_script).format(
-                symptoms_text=symptoms_text,
-                triage_level=triage_level.value,
-                conditions=", ".join(conditions) if conditions else "unspecified",
-                actions=", ".join(actions) if actions else "follow up with doctor",
-            ),
-            system_prompt=self._get_system_prompt(response_script),
-            temperature=0.4,
-            max_tokens=2048,
-        ):
+        fallback = self._fallback_text(script, "RED" if is_emergency else "YELLOW")
+        if llm_available:
+            chunks = self._stream_or_fallback(
+                prompt=self._get_response_prompt(script).format(
+                    symptoms_text=symptoms_text,
+                    triage_level=triage_level.value,
+                    conditions=", ".join(conditions) if conditions else "unspecified",
+                    actions=", ".join(actions) if actions else "follow up with doctor",
+                ),
+                system_prompt=self._get_system_prompt(script),
+                temperature=0.4,
+                max_tokens=2048,
+                fallback=fallback,
+            )
+        else:
+            # Providers just failed; don't make the patient wait on them again.
+            chunks = self._single_chunk(fallback)
+        async for chunk in chunks:
             yield {"type": "chunk", "content": chunk}
 
         complete_event = {
@@ -611,13 +828,54 @@ class TriageEngine:
                 "possible_conditions": conditions,
                 "total_tokens": total_tokens,
                 "sources_count": len(retrieval_results),
+                "llm_available": llm_available,
             },
         )
         yield complete_event
 
+    async def _stream_or_fallback(
+        self,
+        prompt: str,
+        system_prompt: str,
+        temperature: float,
+        max_tokens: int,
+        fallback: str,
+    ) -> AsyncGenerator[str, None]:
+        """Stream an LLM reply, or yield ``fallback`` if no provider can answer."""
+        yielded = False
+        try:
+            async for chunk in self._llm.generate_stream(
+                prompt=prompt,
+                system_prompt=system_prompt,
+                temperature=temperature,
+                max_tokens=max_tokens,
+            ):
+                yielded = True
+                yield chunk
+        except LLMError as exc:
+            logger.error("Response generation unavailable, using fallback: %s", exc)
+            if not yielded:
+                yield fallback
+
+    @staticmethod
+    async def _single_chunk(text: str) -> AsyncGenerator[str, None]:
+        yield text
+
     # ------------------------------------------------------------------
     # Private helpers
     # ------------------------------------------------------------------
+
+    def _fallback_result(self, level: TriageLevel) -> TriageResult:
+        """Rule-based result for when no LLM provider is reachable."""
+        is_red = level == TriageLevel.RED
+        return TriageResult(
+            triage_level=level,
+            response_text=self._fallback_text("arabic", "RED" if is_red else "YELLOW"),
+            possible_conditions=["emergency"] if is_red else [],
+            recommended_actions=self._fallback_actions("arabic", level),
+            sources=[],
+            disclaimer=self._get_disclaimer("arabic", emergency=is_red),
+        )
 
     async def _emergency_response(
         self, symptoms_text: str, base_tokens: int

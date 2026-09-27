@@ -520,3 +520,95 @@ class TestTriageEngineIntegration:
         # Should not raise
         serialized = _json.dumps(result.to_dict())
         assert "triage_level" in serialized
+
+
+# ---------------------------------------------------------------------------
+# Streaming: provider outages, conversation history, English replies
+# ---------------------------------------------------------------------------
+
+
+def _failing_llm() -> MagicMock:
+    """An LLM client whose every provider is down."""
+    from app.core.llm_client import LLMError
+
+    llm = MagicMock()
+    llm.generate = AsyncMock(side_effect=LLMError("All providers failed."))
+
+    async def _stream(**_kw):
+        raise LLMError("All providers failed.")
+        yield  # pragma: no cover - makes this an async generator
+
+    llm.generate_stream = _stream
+    return llm
+
+
+async def _collect(agen) -> list[dict]:
+    return [event async for event in agen]
+
+
+class TestTriageStreamResilience:
+    async def test_llm_outage_still_completes_with_yellow_advice(self):
+        engine = TriageEngine(
+            llm_client=_failing_llm(), arabic_processor=_mock_proc([_make_symptom()])
+        )
+        events = await _collect(
+            engine.triage_stream(
+                "I have a headache for two days", response_script="english"
+            )
+        )
+        types = [e["type"] for e in events]
+        assert types[0] == "triage_classified"
+        assert types[-1] == "complete"
+        assert "error" not in types
+        assert events[-1]["triage_level"] == "YELLOW"
+        text = "".join(e["content"] for e in events if e["type"] == "chunk")
+        assert "doctor" in text.lower()
+
+    async def test_llm_outage_on_emergency_still_says_140(self):
+        engine = TriageEngine(llm_client=_failing_llm(), arabic_processor=_mock_proc())
+        events = await _collect(
+            engine.triage_stream("sudden chest pain", response_script="english")
+        )
+        assert events[-1]["triage_level"] == "RED"
+        text = "".join(e["content"] for e in events if e["type"] == "chunk")
+        assert "140" in text
+
+    async def test_llm_outage_on_vague_query_asks_a_question(self):
+        engine = TriageEngine(llm_client=_failing_llm(), arabic_processor=_mock_proc())
+        events = await _collect(engine.triage_stream("hi", response_script="english"))
+        assert events[-1]["needs_clarification"] is True
+        assert events[-1]["follow_up_question"].endswith("?")
+
+    async def test_history_is_used_for_symptom_extraction(self):
+        proc = _mock_proc([_make_symptom()])
+        llm = _mock_llm(_triage_json("YELLOW"))
+
+        async def _stream(**_kw):
+            yield "ok"
+
+        llm.generate_stream = _stream
+        engine = TriageEngine(llm_client=llm, arabic_processor=proc)
+        await _collect(
+            engine.triage_stream("since two days", history=["I have a headache"])
+        )
+        extracted_from = proc.extract_symptoms.call_args.args[0]
+        assert "I have a headache" in extracted_from
+        assert "since two days" in extracted_from
+
+    async def test_english_mode_uses_english_prompts_and_disclaimer(self):
+        llm = _mock_llm(_triage_json("GREEN"))
+        prompts: list[str] = []
+
+        async def _stream(**kw):
+            prompts.append(kw["prompt"])
+            yield "Rest well."
+
+        llm.generate_stream = _stream
+        engine = TriageEngine(
+            llm_client=llm, arabic_processor=_mock_proc([_make_symptom()])
+        )
+        events = await _collect(
+            engine.triage_stream("I have a mild headache", response_script="english")
+        )
+        assert "plain English" in prompts[0]
+        assert "does not replace a doctor" in events[-1]["disclaimer"]

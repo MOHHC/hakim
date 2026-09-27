@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import logging
+import re
 from typing import Annotated, Literal
 
 from fastapi import APIRouter, Depends
@@ -11,7 +12,7 @@ from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
 
 from app.api.dependencies import get_safety_guardrails, get_triage_engine
-from app.core.safety_guardrails import SafetyGuardrails
+from app.core.safety_guardrails import SafetyGuardrails, detect_script
 from app.core.triage_engine import TriageEngine
 
 logger = logging.getLogger(__name__)
@@ -64,6 +65,28 @@ def _sse(data: dict) -> str:
     return f"data: {json.dumps(data, ensure_ascii=False)}\n\n"
 
 
+def _output_script(request: ChatRequest) -> str:
+    """Pick the reply language: "english", "franco" or "arabic"."""
+    if request.language_preference == "english":
+        return "english"
+    if request.response_script == "franco":
+        return "franco"
+    if request.language_preference == "auto":
+        return detect_script(request.message)
+    return "arabic"
+
+
+# Where it is safe to cut streamed text for sanitising: a dosage like "500 mg"
+# never spans a sentence end, so each sentence can be cleaned on its own.
+_SENTENCE_END_RE = re.compile(r"[.!?؟،\n]")
+
+_ERROR_MESSAGES = {
+    "arabic": "صار في مشكلة تقنية. جرب كمان مرة. إذا حاسس إنو حالتك طارئة، اتصل بالصليب الأحمر على 140.",
+    "franco": "sar fi moshkle te2niye. jarreb kamen marra. eza 7ases enno 7altak tar2a, ettesel bel Salib l A7mar 3ala 140.",
+    "english": "Something went wrong on our side. Please try again. If this feels like an emergency, call the Red Cross on 140.",
+}
+
+
 # ---------------------------------------------------------------------------
 # Route
 # ---------------------------------------------------------------------------
@@ -98,6 +121,9 @@ async def chat(
     engine: Annotated[TriageEngine, Depends(get_triage_engine)],
     guardrails: Annotated[SafetyGuardrails, Depends(get_safety_guardrails)],
 ) -> StreamingResponse:
+    script = _output_script(request)
+    history = [m.content for m in request.conversation_history if m.role == "user"]
+
     async def event_stream():
         yield _sse({"type": "start"})
 
@@ -108,36 +134,56 @@ async def chat(
                 {
                     "type": "blocked",
                     "reason": check.violation_type,
-                    "message": guardrails.ensure_disclaimer(
-                        check.rejection_message or "",
-                        is_emergency=guardrails.is_emergency_violation(check),
-                    ),
+                    "message": guardrails.format_rejection(check, script),
                     "force_red": check.force_red,
                 }
             )
             yield "data: [DONE]\n\n"
             return
 
-        # Run streaming triage pipeline — yields triage_classified → chunk×N → complete
+        # Run streaming triage pipeline — yields triage_classified → chunk×N → complete.
+        # Model text is held back to the end of each sentence and sanitised
+        # there, so a dosage or drug name never reaches the patient mid-stream.
+        pending = ""
         try:
             async for event in engine.triage_stream(
-                request.message, response_script=request.response_script
+                request.message, response_script=script, history=history
             ):
-                if event["type"] == "complete":
-                    # Apply guardrail disclaimer post-processing to the complete event
-                    is_emergency = event.get("triage_level") == "RED"
-                    event["disclaimer"] = guardrails.ensure_disclaimer(
-                        event.get("disclaimer", ""), is_emergency=is_emergency
+                if event["type"] == "chunk":
+                    pending += event.get("content", "")
+                    cut = max(
+                        (m.end() for m in _SENTENCE_END_RE.finditer(pending)),
+                        default=0,
                     )
+                    if cut:
+                        ready, pending = pending[:cut], pending[cut:]
+                        yield _sse(
+                            {
+                                "type": "chunk",
+                                "content": guardrails.sanitize_response(ready),
+                            }
+                        )
+                    continue
+                if event["type"] == "complete":
+                    if pending:
+                        yield _sse(
+                            {
+                                "type": "chunk",
+                                "content": guardrails.sanitize_response(pending),
+                            }
+                        )
+                        pending = ""
+                    # The engine already picked a disclaimer in the reply language
+                    if not event.get("disclaimer"):
+                        event["disclaimer"] = guardrails.ensure_disclaimer(
+                            "",
+                            is_emergency=event.get("triage_level") == "RED",
+                            script=script,
+                        ).strip()
                 yield _sse(event)
         except Exception as exc:
             logger.exception("Triage stream failed: %s", exc)
-            yield _sse(
-                {
-                    "type": "error",
-                    "message": "Triage processing failed. Please try again.",
-                }
-            )
+            yield _sse({"type": "error", "message": _ERROR_MESSAGES[script]})
         yield "data: [DONE]\n\n"
 
     return StreamingResponse(

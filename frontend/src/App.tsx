@@ -119,6 +119,7 @@ function AppContent() {
                   onChange={e => setInput(e.target.value)}
                   onKeyDown={handleKeyDown}
                   placeholder={t("inputPlaceholder")}
+                  maxLength={2000}
                   rows={1}
                   className="hakim-textarea"
                   style={{ flex: 1, borderRadius: 14, padding: "11px 16px", fontSize: "0.95rem", lineHeight: 1.5, resize: "none", fontFamily: "inherit" }}

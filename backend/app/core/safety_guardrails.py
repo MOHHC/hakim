@@ -23,6 +23,7 @@ class ViolationType(str, Enum):
     SCOPE_INFANT = "scope_infant"
     SCOPE_PREGNANCY = "scope_pregnancy"
     SCOPE_LAB_RESULTS = "scope_lab_results"
+    SCOPE_MEDICATION = "scope_medication"
     EMERGENCY_RED_FLAG = "emergency_red_flag"
     SUICIDAL_IDEATION = "suicidal_ideation"
     DIAGNOSIS_LANGUAGE = "diagnosis_language"
@@ -86,18 +87,51 @@ _INFANT_RE = re.compile(
     "|".join(re.escape(s) for s in _INFANT_SUBSTRINGS), re.IGNORECASE
 )
 
-_PREGNANCY_SUBSTRINGS = [
-    "\u062d\u0627\u0645\u0644\u0629",  # حاملة
-    "\u062d\u0645\u0644",  # حمل
-    "pregnant",
-    "pregnancy",
-    "contractions",
-    "water broke",
-    "preeclampsia",
-    "hamil",
-]
+# Arabic letters, used to fake word boundaries: Python's \b treats Arabic
+# letters as word characters, but not the Lebanese prefixes glued onto words.
+_AR = "\u0600-\u06ff"
+_ARABIC_DIGITS = str.maketrans(
+    "\u0660\u0661\u0662\u0663\u0664\u0665\u0666\u0667\u0668\u0669", "0123456789"
+)
+
+# A stated age in months ("3 months old", "عمرو 3 أشهر", "3emro 3 ashhor").
+# Only an *age* counts: "pain for 3 months" must not block an adult.
+_AGE_MONTHS_RE = re.compile(
+    r"\b(\d{1,2})[\s-]*(?:months?|mos?)[\s-]*old\b"
+    r"|(?:عمر|3emr|3omr|3mr)\w*\s*(\d{1,2})?\s*"
+    r"(?:شهر|أشهر|اشهر|شهور|ashhor|ashhur|shhur|shahr|shaher)",
+    re.IGNORECASE,
+)
+# One-year-olds and "two months" said as a dual form.
+_INFANT_AGE_RE = re.compile(
+    r"\b(?:[01](?:\.\d)?|one)[\s-]*(?:years?|yrs?|yo)[\s-]*old\b"
+    r"|(?:عمر)\S*\s*(?:سنة|سنه|شهرين)(?![" + _AR + r"])"
+    r"|(?:3emr|3omr|3mr)\w*\s*(?:sene|seneh|shahren|shahrein)\b"
+    r"|(?<![" + _AR + r"])(?:مولود|مولودة|بيبي)(?![" + _AR + r"])"
+    r"|\b(?:my|our)\s+baby\b",
+    re.IGNORECASE,
+)
+
+
+def _is_infant(query: str) -> bool:
+    """True when the query is about a child under two."""
+    if _INFANT_RE.search(query) or _INFANT_AGE_RE.search(query):
+        return True
+    for m in _AGE_MONTHS_RE.finditer(query.translate(_ARABIC_DIGITS)):
+        months = m.group(1) or m.group(2)
+        # "عمرو أشهر" with no number still means a baby
+        if months is None or int(months) < 24:
+            return True
+    return False
+
+
+# Arabic terms are matched as whole words (allowing the و/ب/ال prefixes):
+# as a bare substring "حمل" also matched "بتحمل" (I can bear) and "حملت"
+# (I lifted), which turned back pain from lifting into a pregnancy refusal.
 _PREGNANCY_RE = re.compile(
-    "|".join(re.escape(s) for s in _PREGNANCY_SUBSTRINGS), re.IGNORECASE
+    r"(?<![" + _AR + r"])(?:[وب]?(?:ال)?)(?:حامل|حاملة|حبلى|حبلة|حمل)(?![" + _AR + r"])"
+    r"|\b(?:pregnant|pregnancy|contractions|water broke|preeclampsia|hamil|7amel|7amle)\b",
+    re.IGNORECASE,
 )
 
 _LAB_SUBSTRINGS = [
@@ -139,6 +173,28 @@ _SUICIDAL_RE = re.compile(
     "|".join(re.escape(s) for s in _SUICIDAL_SUBSTRINGS), re.IGNORECASE
 )
 
+# ---- Overdose / poisoning (single-trigger emergency) ----------------------
+
+_OVERDOSE_RE = re.compile(
+    r"\boverdos(?:e|ed|ing)\b"
+    r"|\b(?:took|swallowed|ate)\s+(?:too\s+many|a\s+lot\s+of|a\s+whole\s+(?:bottle|box|pack)\s+of)\s+\w+"
+    r"|\bpoison(?:ed|ing)?\b"
+    r"|جرعة زايدة|جرعة زائدة|تسمم|(?:بلعت|أخدت|اخدت|اخذت)\s+(?:حبوب|دوا|ادوية|أدوية)\s+(?:كتير|كثير)",
+    re.IGNORECASE,
+)
+
+# ---- Requests for medication names or doses ------------------------------
+
+_MEDICATION_REQUEST_RE = re.compile(
+    r"\b(?:what|which|how\s+much|how\s+many)\b[^.?!]{0,40}\b(?:dose|dosage|mg|pills?|tablets?|medicine|medication|drug)s?\b"
+    r"|\b(?:dose|dosage)\s+of\b"
+    r"|\bshould\s+i\s+take\b"
+    r"|\bwhat\s+(?:can|should)\s+i\s+take\b"
+    r"|جرعة|(?:شو|أي|اي|ايا)\s+(?:دوا|دواء)|قديش\s+(?:حبة|حبات|حبوب)|شو\s+باخد"
+    r"|\bshu\s+(?:dawa|bekhod|bokhod)\b|\b2adde(?:sh|ch)\s+7ab",
+    re.IGNORECASE,
+)
+
 # ---- Compound red-flag patterns (require TWO symptom groups) ---------------
 
 _RED_FLAG_PATTERNS: list[_RedFlagPattern] = [
@@ -152,6 +208,10 @@ _RED_FLAG_PATTERNS: list[_RedFlagPattern] = [
             "chest pressure",
             "\u0623\u0644\u0645 \u0635\u062f\u0631",  # ألم صدر
             "\u0648\u062c\u0639 \u0635\u062f\u0631",  # وجع صدر
+            "وجع بصدري",
+            "وجع بالصدر",
+            "ألم بالصدر",
+            "ألم في الصدر",
         ],
         triggers_b=[
             "arm numbness",
@@ -164,8 +224,10 @@ _RED_FLAG_PATTERNS: list[_RedFlagPattern] = [
             "radiating",
             "\u062e\u062f\u0631 \u064a\u062f",  # خدر يد
             "\u0630\u0631\u0627\u0639",  # ذراع
+            "دراع",  # arm, Lebanese spelling
             "\u0643\u062a\u0641",  # كتف
-            "\u0641\u0643",  # فك
+            # فك (jaw) is matched as a whole word in _check_red_flags: as a
+            # substring it hit "بفكر" (I think) and "فكرة" (idea).
         ],
     ),
     # Anaphylaxis
@@ -219,6 +281,9 @@ _RED_FLAG_PATTERNS: list[_RedFlagPattern] = [
     ),
 ]
 
+# "فك" (jaw) as a whole word, with or without the و/ب/ال prefixes.
+_JAW_RE = re.compile(r"(?<![" + _AR + r"])(?:[وب]?(?:ال)?)فك(?:ي)?(?![" + _AR + r"])")
+
 # ---- Medication / dosage detection in LLM output --------------------------
 
 _DOSAGE_RE = re.compile(
@@ -226,18 +291,21 @@ _DOSAGE_RE = re.compile(
     re.IGNORECASE,
 )
 
-_DRUG_RE = re.compile(
-    r"\b(?:"
+_DRUG_NAMES = (
+    r"(?:"
     r"ibuprofen|paracetamol|acetaminophen|aspirin|amoxicillin|"
     r"metformin|atorvastatin|omeprazole|diazepam|tramadol|"
     r"codeine|morphine|warfarin|prednisone|methotrexate|"
+    r"panadol|advil|brufen|xanax|alprazolam|"
     r"[a-z]{4,}(?:cillin|mycin|oxacin|statin|prazole|sartan|dipine|olol)"
-    r")\b",
-    re.IGNORECASE,
+    r")"
 )
+_DRUG_RE = re.compile(r"\b" + _DRUG_NAMES + r"\b", re.IGNORECASE)
 
+# "take" only counts as medication advice when a drug follows it; matching
+# any word turned "take a rest" into "[medication advice removed] rest".
 _TAKE_DRUG_RE = re.compile(
-    r"\b(?:take|خذ|خذي|تناول|تناولي)\s+\w+(?:\s+\d+)?",
+    r"\b(?:take|خذ|خذي|تناول|تناولي)\s+(?:some\s+|an?\s+)?" + _DRUG_NAMES + r"\b",
     re.IGNORECASE,
 )
 
@@ -296,11 +364,97 @@ _REJECTION: dict[ViolationType, str] = {
         "Call 140 or go to the ER immediately. Do not wait."
     ),
     ViolationType.SUICIDAL_IDEATION: (
-        "I'm very concerned about you. Please call a crisis helpline or "
-        "go to the nearest emergency room right now. "
-        "You are not alone, and help is available."
+        "I'm very concerned about you. Please call the Embrace Lifeline on 1564 "
+        "(emotional support and suicide prevention in Lebanon) or go to the "
+        "nearest emergency room right now. If you are in immediate danger, call "
+        "the Red Cross on 140. You are not alone, and help is available."
+    ),
+    ViolationType.SCOPE_MEDICATION: (
+        "I can't recommend medications or doses. Please ask a pharmacist or "
+        "your doctor. If you took too much of a medicine, go to the ER or call "
+        "the Red Cross on 140 now."
     ),
 }
+
+# Same messages for patients writing in Arabic script or Franco-Arab.  Refusals
+# in English were landing on people who had written to Hakim in Arabic.
+_REJECTION_AR: dict[ViolationType, str] = {
+    ViolationType.SCOPE_INFANT: (
+        "ما بقدر قيّم حالة ولاد عمرن أقل من سنتين. "
+        "خود الطفل عند دكتور الأطفال أو عالطوارئ فوراً."
+    ),
+    ViolationType.SCOPE_PREGNANCY: (
+        "ما بقدر إعطي نصيحة عن مضاعفات الحمل. "
+        "اتصلي بدكتورة النسائية أو روحي على أقرب قسم ولادة."
+    ),
+    ViolationType.SCOPE_LAB_RESULTS: (
+        "ما بقدر إقرا نتائج التحاليل أو الصور أو التقارير الطبية. "
+        "ناقشها مباشرة مع دكتورك."
+    ),
+    ViolationType.EMERGENCY_RED_FLAG: (
+        "هالأعراض ممكن تكون حالة طارئة. "
+        "اتصل بالصليب الأحمر على 140 أو روح عالطوارئ هلق. ما تستنى."
+    ),
+    ViolationType.SUICIDAL_IDEATION: (
+        "أنا كتير قلقان عليك. اتصل بخط الحياة من Embrace على 1564 "
+        "(دعم نفسي والوقاية من الانتحار بلبنان) أو روح على أقرب طوارئ هلق. "
+        "إذا إنت بخطر فوري، اتصل بالصليب الأحمر على 140. "
+        "إنت مش لحالك، وفي حدا بيقدر يساعدك."
+    ),
+    ViolationType.SCOPE_MEDICATION: (
+        "ما بقدر إنصح بأدوية أو جرعات. اسأل الصيدلي أو دكتورك. "
+        "إذا أخدت دوا أكتر من اللازم، روح عالطوارئ أو اتصل بالصليب الأحمر على 140 هلق."
+    ),
+}
+
+_REJECTION_FRANCO: dict[ViolationType, str] = {
+    ViolationType.SCOPE_INFANT: (
+        "ma ba2der 2ayyem 7alet wled 3omron a2al men sentein. "
+        "khod l walad 3and doctor l atfal aw 3al taware2 fawran."
+    ),
+    ViolationType.SCOPE_PREGNANCY: (
+        "ma ba2der a3te nasi7a 3an mada3afet l 7aml. "
+        "ettesle b doctora l nisa2iye aw ru7e 3a a2rab 2esm wilade."
+    ),
+    ViolationType.SCOPE_LAB_RESULTS: (
+        "ma ba2der e2ra nata2ej l ta7alil aw l suwar aw l ta2arir l tebbiye. "
+        "7ke fiyon ma3 l doctor."
+    ),
+    ViolationType.EMERGENCY_RED_FLAG: (
+        "hal a3rad momken tkun 7ale tar2a. "
+        "ettesel bel Salib l A7mar 3ala 140 aw ru7 3al taware2 hala2. ma testanna."
+    ),
+    ViolationType.SUICIDAL_IDEATION: (
+        "ana ktir 2al2an 3alek. ettesel b khatt l 7aya men Embrace 3ala 1564 "
+        "aw ru7 3a a2rab taware2 hala2. eza enta b khatar fawre, ettesel bel "
+        "Salib l A7mar 3ala 140. enta msh la7alak, w fi 7ada fi ysa3dak."
+    ),
+    ViolationType.SCOPE_MEDICATION: (
+        "ma ba2der ense7 b adwye aw jora3at. es2al l saydale aw l doctor. "
+        "eza akhadt dawa aktar men l lezem, ru7 3al taware2 aw ettesel bel "
+        "Salib l A7mar 3ala 140 hala2."
+    ),
+}
+
+_DISCLAIMER_AR = (
+    "\u26a0\ufe0f هيدي المعلومات ما بتغني عن الدكتور. إذا الأعراض ساءت، روح عالطبيب."
+)
+_EMERGENCY_DISCLAIMER_AR = "\U0001f6a8 هالأعراض بدها عناية طارئة فوراً. اتصل بالصليب الأحمر على 140 أو روح عالطوارئ هلق."
+_DISCLAIMER_FRANCO = (
+    "haydi l ma3lumet ma bteghne 3an l doctor. eza l a3rad sa2et, ru7 3al tabib."
+)
+_EMERGENCY_DISCLAIMER_FRANCO = "hal a3rad badda 3inaye tar2a fawran. ettesel bel Salib l A7mar 3ala 140 aw ru7 3al taware2 hala2."
+
+_ARABIC_LETTER_RE = re.compile("[\u0621-\u064a]")
+
+
+def detect_script(text: str) -> str:
+    """Guess how a patient writes: "arabic" (Arabic script) or "english".
+
+    Franco-Arab can't be told apart from English reliably, so callers that know
+    the user picked Franco should pass that explicitly instead.
+    """
+    return "arabic" if _ARABIC_LETTER_RE.search(text) else "english"
 
 
 # ---------------------------------------------------------------------------
@@ -320,10 +474,12 @@ class SafetyGuardrails:
 
         Priority order:
           1. Suicidal ideation  (mental health crisis)
-          2. Scope: infant      (send to pediatrician)
-          3. Scope: pregnancy   (send to OB/GYN)
-          4. Scope: lab results (refer to doctor)
-          5. Compound emergency red flags (force RED)
+          2. Overdose/poisoning (force RED)
+          3. Scope: infant      (send to pediatrician)
+          4. Scope: pregnancy   (send to OB/GYN)
+          5. Scope: lab results (refer to doctor)
+          6. Compound emergency red flags (force RED)
+          7. Scope: medication or dose requests (refer to pharmacist)
         """
         if _SUICIDAL_RE.search(query):
             return GuardrailResult(
@@ -332,7 +488,14 @@ class SafetyGuardrails:
                 rejection_message=_REJECTION[ViolationType.SUICIDAL_IDEATION],
                 force_red=False,
             )
-        if _INFANT_RE.search(query):
+        if _OVERDOSE_RE.search(query):
+            return GuardrailResult(
+                is_safe=False,
+                violation_type=ViolationType.EMERGENCY_RED_FLAG,
+                rejection_message=_REJECTION[ViolationType.EMERGENCY_RED_FLAG],
+                force_red=True,
+            )
+        if _is_infant(query):
             return GuardrailResult(
                 is_safe=False,
                 violation_type=ViolationType.SCOPE_INFANT,
@@ -358,7 +521,32 @@ class SafetyGuardrails:
                 rejection_message=_REJECTION[ViolationType.EMERGENCY_RED_FLAG],
                 force_red=True,
             )
+        if _MEDICATION_REQUEST_RE.search(query):
+            return GuardrailResult(
+                is_safe=False,
+                violation_type=ViolationType.SCOPE_MEDICATION,
+                rejection_message=_REJECTION[ViolationType.SCOPE_MEDICATION],
+            )
         return GuardrailResult(is_safe=True)
+
+    def format_rejection(self, result: GuardrailResult, script: str = "english") -> str:
+        """The reply for a blocked query, in the patient's language.
+
+        ``script`` is "arabic", "franco" or "english".  A crisis referral gets no
+        extra disclaimer: its message already carries the helpline numbers, and
+        the physical-emergency warning read as off-key next to it.
+        """
+        vt = result.violation_type
+        table = {"arabic": _REJECTION_AR, "franco": _REJECTION_FRANCO}.get(
+            script, _REJECTION
+        )
+        message = table.get(vt) if vt is not None else None
+        message = message or result.rejection_message or ""
+        if vt == ViolationType.SUICIDAL_IDEATION:
+            return message
+        return self.ensure_disclaimer(
+            message, is_emergency=self.is_emergency_violation(result), script=script
+        )
 
     # ------------------------------------------------------------------
     # Post-output gate
@@ -418,18 +606,23 @@ class SafetyGuardrails:
             text,
             flags=re.IGNORECASE,
         )
-        # Strip "take X" medication advice
-        text = re.sub(
-            r"\b(?:take|خذ|خذي|تناول|تناولي)\s+\w+(?:\s+\d+)?",
-            "[medication advice removed]",
-            text,
-            flags=re.IGNORECASE,
-        )
+        # Strip "take <drug>" advice, then any drug name left on its own
+        text = _TAKE_DRUG_RE.sub("[medication advice removed]", text)
+        text = _DRUG_RE.sub("[medication removed]", text)
         return text
 
-    def ensure_disclaimer(self, text: str, is_emergency: bool = False) -> str:
+    def ensure_disclaimer(
+        self, text: str, is_emergency: bool = False, script: str = "english"
+    ) -> str:
         """Append the appropriate disclaimer if not already present."""
-        disclaimer = EMERGENCY_DISCLAIMER if is_emergency else DISCLAIMER
+        if script == "arabic":
+            disclaimer = _EMERGENCY_DISCLAIMER_AR if is_emergency else _DISCLAIMER_AR
+        elif script == "franco":
+            disclaimer = (
+                _EMERGENCY_DISCLAIMER_FRANCO if is_emergency else _DISCLAIMER_FRANCO
+            )
+        else:
+            disclaimer = EMERGENCY_DISCLAIMER if is_emergency else DISCLAIMER
         if disclaimer in text:
             return text
         return f"{text}\n\n{disclaimer}"
@@ -454,9 +647,12 @@ class SafetyGuardrails:
     def _check_red_flags(query: str) -> _RedFlagPattern | None:
         """Return the first matching compound red-flag pattern, or None."""
         lower = query.lower()
+        jaw = bool(_JAW_RE.search(query))
         for pattern in _RED_FLAG_PATTERNS:
             a_hit = any(t.lower() in lower for t in pattern.triggers_a)
-            b_hit = any(t.lower() in lower for t in pattern.triggers_b)
+            b_hit = any(t.lower() in lower for t in pattern.triggers_b) or (
+                jaw and pattern.name == "cardiac_mi"
+            )
             if a_hit and b_hit:
                 return pattern
         return None

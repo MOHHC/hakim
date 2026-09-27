@@ -29,32 +29,51 @@ class HealthResponse(BaseModel):
     description=(
         "Returns overall system status and per-component availability. "
         "``status`` is ``ok`` when all components are healthy, "
-        "``degraded`` when some are unavailable but requests can still be served."
+        "``degraded`` when some are unavailable but requests can still be served. "
+        "With ``?probe=true`` each LLM provider's key and model are tested "
+        "(cached for 5 minutes); without it only key presence is checked, which "
+        "keeps platform liveness checks free of provider calls."
     ),
 )
-async def health_check() -> HealthResponse:
+async def health_check(probe: bool = False) -> HealthResponse:
     from app.config import settings
 
     components: dict[str, ComponentStatus] = {}
     overall = "ok"
 
-    # --- LLM providers (check key presence only, no HTTP call) ---
-    gemini_ok = bool(settings.gemini_api_key)
-    groq_ok = bool(settings.groq_api_key)
-    if gemini_ok or groq_ok:
-        labels = []
-        if gemini_ok:
-            labels.append("gemini (primary)")
-        if groq_ok:
-            labels.append("groq (fallback)")
-        components["llm"] = ComponentStatus(
-            status="ok", detail=f"configured: {', '.join(labels)}"
-        )
-    else:
+    # --- LLM providers ---
+    if not (settings.gemini_api_key or settings.groq_api_key):
         components["llm"] = ComponentStatus(
             status="error", detail="no LLM API keys configured"
         )
         overall = "degraded"
+    elif not probe:
+        components["llm"] = ComponentStatus(
+            status="ok", detail="keys configured (pass ?probe=true to test them)"
+        )
+    else:
+        from app.core.llm_client import probe_providers
+
+        providers = await probe_providers()
+        for name, st in providers.items():
+            components[f"llm_{name}"] = ComponentStatus(
+                status="ok" if st.ok else "error", detail=st.detail
+            )
+        working = [name for name, st in providers.items() if st.ok]
+        if not working:
+            # Chat still answers with rule-based fallback advice, but it's degraded
+            components["llm"] = ComponentStatus(
+                status="error",
+                detail="no provider reachable — serving rule-based fallback triage",
+            )
+            overall = "degraded"
+        else:
+            components["llm"] = ComponentStatus(
+                status="ok" if len(working) == len(providers) else "degraded",
+                detail=f"working: {', '.join(working)}",
+            )
+            if len(working) < len(providers):
+                overall = "degraded"
 
     # --- Vector store (count() is synchronous, no network call) ---
     try:

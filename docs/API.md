@@ -63,14 +63,22 @@ data: {"triage_level": "YELLOW"}
 **4. `chunk` — Response text token (repeated)**
 ```
 event: chunk
-data: {"text": "هيدا "}
+data: {"type": "chunk", "content": "هيدا "}
 
 event: chunk
-data: {"text": "ممكن "}
+data: {"type": "chunk", "content": "ممكن "}
 
 event: chunk
-data: {"text": "يكون..."}
+data: {"type": "chunk", "content": "يكون..."}
 ```
+
+Chunks arrive a sentence at a time: each sentence is passed through the
+safety sanitiser (dosages and drug names removed) before it is sent.
+
+If every LLM provider is unavailable the stream still completes: triage falls
+back to rules (emergency phrases -> RED, otherwise a conservative YELLOW) and the
+reply is fixed "see a doctor" guidance in the patient's language. An `error`
+event is only sent for unexpected server faults.
 
 **5. `complete` — Final metadata**
 ```
@@ -226,7 +234,7 @@ curl http://localhost:8000/api/health
   "components": {
     "llm": {
       "status": "ok",
-      "details": "Gemini key present"
+      "detail": "keys configured (pass ?probe=true to test them)"
     },
     "vector_store": {
       "status": "ok",
@@ -243,6 +251,11 @@ curl http://localhost:8000/api/health
 **Status values:**
 - `"ok"` — All components healthy
 - `"degraded"` — Some components unavailable (e.g., no Gemini key, empty vector store)
+
+`GET /api/health?probe=true` additionally asks each LLM provider to look up the
+configured model (a free metadata call, cached for 5 minutes) and reports
+`llm_gemini` / `llm_groq` components with the HTTP status on failure. Use it to
+tell a revoked key or retired model apart from a healthy deployment.
 
 ---
 

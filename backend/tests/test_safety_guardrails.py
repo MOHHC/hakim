@@ -35,6 +35,7 @@ class TestViolationType:
             "SCOPE_INFANT",
             "SCOPE_PREGNANCY",
             "SCOPE_LAB_RESULTS",
+            "SCOPE_MEDICATION",
             "EMERGENCY_RED_FLAG",
             "SUICIDAL_IDEATION",
             "DIAGNOSIS_LANGUAGE",

@@ -103,11 +103,13 @@ User Input
 
 ## Violation Types (Priority Order)
 
-1. **SUICIDAL_IDEATION** — Highest priority. Detected via keyword patterns in Arabic, Franco-Arab, and English. Response includes crisis helpline numbers.
+1. **SUICIDAL_IDEATION** — Highest priority. Detected via keyword patterns in Arabic, Franco-Arab, and English. Response gives the Embrace Lifeline (1564) and the Red Cross (140), without the physical-emergency disclaimer.
 
-2. **SCOPE_INFANT** — Triggered by age mentions under 2 years. Pattern: "baby", "رضيع", "عمرو شهر", age < 24 months.
+   **Overdose / poisoning** ("took too many pills", "جرعة زايدة") is checked next and escalates as an EMERGENCY_RED_FLAG with force-RED.
 
-3. **SCOPE_PREGNANCY** — Triggered by pregnancy-related terms combined with concerning symptoms. Pattern: "حامل" + bleeding/pain/contractions.
+2. **SCOPE_INFANT** — Triggered by a stated age under 2 years: "3 months old", "عمرو 3 أشهر", "3emro 5 ashhor", "عمرها سنة", "1 year old", or "infant", "newborn", "رضيع", "my baby". A duration ("pain for 3 months") is not an age and does not trigger it.
+
+3. **SCOPE_PREGNANCY** — Triggered by pregnancy terms matched as whole words ("حامل", "بالحمل", "pregnant"), so "حملت" (I lifted) and "اتحمل" (bear) are not refused.
 
 4. **SCOPE_LAB_RESULTS** — Triggered by lab/test terminology. Pattern: "blood test", "تحليل دم", "x-ray", "ECG", "MRI".
 
@@ -116,6 +118,10 @@ User Input
 6. **DIAGNOSIS_LANGUAGE** — Post-output only. Catches definitive assertions in LLM output.
 
 7. **MEDICATION_REFERENCE** — Post-output only. Catches drug names and dosages in LLM output.
+
+8. **SCOPE_MEDICATION** — Pre-input. Requests for a medicine or dose ("what dose of…", "شو دوا", "قديش حبة") are referred to a pharmacist or doctor instead of being triaged.
+
+Refusals are returned in the patient's language (Arabic script, Franco-Arab, or English).
 
 ## Disclaimers
 
@@ -128,7 +134,7 @@ Every Hakim response includes a disclaimer. There are two variants:
 > These symptoms require IMMEDIATE emergency care. Call 140 (Lebanese Red Cross) or go to the nearest emergency room now.
 
 The frontend also displays a persistent banner at the top of the app:
-> This app is not a substitute for medical advice. In emergencies, call 125 (Civil Defense) or go to the nearest hospital.
+> This app is not a substitute for medical advice. In emergencies, call 140 (Red Cross) or go to the nearest hospital.
 
 ## Rate Limiting
 

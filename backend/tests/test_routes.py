@@ -93,6 +93,9 @@ def _mock_guardrails(
     g.check_response.return_value = GuardrailResult(is_safe=True)
     g.sanitize_response.side_effect = lambda text: text
     g.ensure_disclaimer.side_effect = lambda text, **kw: text
+    g.format_rejection.side_effect = lambda result, script="english": (
+        result.rejection_message or ""
+    )
     g.is_emergency_violation.return_value = False
     return g
 

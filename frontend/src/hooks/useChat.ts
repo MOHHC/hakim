@@ -3,6 +3,9 @@ import type { Message, Conversation, TriageResult, SSEEvent } from '../types'
 import { useLocalStorage } from './useLocalStorage'
 import { streamChat } from '../api/client'
 
+/** Most turns the API accepts in conversation_history. */
+const MAX_HISTORY = 20
+
 function uid(): string {
   return Date.now().toString(36) + Math.random().toString(36).slice(2)
 }
@@ -95,8 +98,12 @@ export function useChat(languagePreference: string = 'auto', responseScript: str
       const controller = new AbortController()
       abortRef.current = controller
 
+      // The API rejects empty turns and more than 20 of them, and error or
+      // refusal text isn't conversation context — any of those used to make
+      // every later message in the chat fail with "Request failed."
       const history = messages
-        .filter((m) => !m.isStreaming)
+        .filter((m) => !m.isStreaming && !m.isError && m.content.trim() !== '')
+        .slice(-MAX_HISTORY)
         .map((m) => ({ role: m.role, content: m.content }))
 
       try {

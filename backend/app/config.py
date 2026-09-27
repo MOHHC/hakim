@@ -21,6 +21,11 @@ class Settings(BaseSettings):
     langfuse_host: str = "https://us.cloud.langfuse.com"
     allowed_origins: str = "http://localhost:3000"
 
+    # Model names are settings so a provider retiring or gating a model can be
+    # fixed from the hosting dashboard instead of needing a redeploy.
+    gemini_model: str = "gemini-2.5-flash"
+    groq_model: str = "llama-3.3-70b-versatile"
+
     # Client-side pacing, in requests per minute.  Defaults target the free
     # tiers of gemini-2.5-flash (10 RPM) and llama-3.3-70b-versatile (30 RPM);
     # raise them if the deployment has paid quota.
