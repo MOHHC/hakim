@@ -76,6 +76,7 @@ export function useChat(languagePreference: string = 'auto', responseScript: str
         content: '',
         timestamp: Date.now(),
         isStreaming: true,
+        awaitingServer: true,
       }
 
       const cid = convId
@@ -106,6 +107,7 @@ export function useChat(languagePreference: string = 'auto', responseScript: str
         .slice(-MAX_HISTORY)
         .map((m) => ({ role: m.role, content: m.content }))
 
+      let heardFromServer = false
       try {
         await streamChat(
           content,
@@ -113,6 +115,10 @@ export function useChat(languagePreference: string = 'auto', responseScript: str
           languagePreference,
           responseScript,
           (event: SSEEvent) => {
+            if (!heardFromServer) {
+              heardFromServer = true
+              patchMessage(cid, aid, { awaitingServer: false })
+            }
             switch (event.type) {
               case 'triage_classified': {
                 const partialTriageResult: TriageResult = {
@@ -200,6 +206,9 @@ export function useChat(languagePreference: string = 'auto', responseScript: str
           })
         }
       } finally {
+        // A stopped (aborted) request never gets a complete/error event, which
+        // left its bubble showing the typing indicator forever.
+        patchMessage(cid, aid, { isStreaming: false, awaitingServer: false })
         setIsStreaming(false)
         abortRef.current = null
       }

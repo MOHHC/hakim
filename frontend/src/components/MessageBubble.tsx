@@ -93,7 +93,7 @@ export default function MessageBubble({ message }: { message: Message }) {
       {!isUser && <AiAvatar />}
       <div style={bubbleStyle}>
         {message.isStreaming && !message.content ? (
-          <TypingIndicator />
+          <TypingIndicator awaitingServer={!!message.awaitingServer} />
         ) : (
           <>
             <p style={{ margin: 0, fontSize: "0.925rem", lineHeight: 1.7, whiteSpace: "pre-wrap" }}>

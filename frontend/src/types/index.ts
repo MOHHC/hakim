@@ -28,6 +28,8 @@ export interface Message {
   timestamp: number
   triageResult?: TriageResult
   isStreaming?: boolean
+  /** True until the server sends its first event; a long wait means it is cold-starting. */
+  awaitingServer?: boolean
   isBlocked?: boolean
   isError?: boolean
 }

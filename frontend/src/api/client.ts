@@ -109,6 +109,17 @@ export async function triageDirect(query: string) {
   return response.json()
 }
 
+/**
+ * Nudge the backend awake as soon as the page opens.
+ *
+ * The free-tier host sleeps when idle and needs up to a minute to start, so
+ * starting that while the patient is still reading and typing hides most of
+ * the wait.  Failures don't matter: the chat request will wake it anyway.
+ */
+export function warmUpBackend(): void {
+  fetch(`${API_URL}/api/health`).catch(() => {})
+}
+
 export async function checkHealth() {
   const response = await fetch(`${API_URL}/api/health`)
   return response.json()
