@@ -612,3 +612,43 @@ class TestTriageStreamResilience:
         )
         assert "plain English" in prompts[0]
         assert "does not replace a doctor" in events[-1]["disclaimer"]
+
+
+class TestReplyWhenOnlyWritingFails:
+    """Classification succeeded but the reply couldn't be written."""
+
+    async def test_reply_uses_the_models_own_classification(self):
+        from app.core.llm_client import LLMError
+
+        llm = _mock_llm(_triage_json("GREEN"))
+
+        async def _stream(**_kw):
+            raise LLMError("All providers failed.")
+            yield  # pragma: no cover
+
+        llm.generate_stream = _stream
+        engine = TriageEngine(
+            llm_client=llm, arabic_processor=_mock_proc([_make_symptom()])
+        )
+        events = await _collect(
+            engine.triage_stream(
+                "my knee hurts after running", response_script="english"
+            )
+        )
+        text = "".join(e["content"] for e in events if e["type"] == "chunk")
+        assert events[-1]["triage_level"] == "GREEN"
+        # No "see a doctor within a day or two" contradicting the GREEN badge
+        assert "day or two" not in text
+        assert text.startswith("This could be:") or "don't look urgent" in text
+
+    def test_green_without_details_gets_green_copy(self):
+        text = TriageEngine._reply_from_classification(
+            "english", TriageLevel.GREEN, [], []
+        )
+        assert "don't look urgent" in text
+
+    def test_red_always_gets_the_emergency_copy(self):
+        text = TriageEngine._reply_from_classification(
+            "arabic", TriageLevel.RED, ["x"], ["y"]
+        )
+        assert "140" in text

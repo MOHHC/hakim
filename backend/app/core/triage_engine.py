@@ -292,6 +292,12 @@ _FALLBACK_TEXT: dict[str, dict[str, str]] = {
             "ما تستنى."
         ),
         "CLARIFY": "خبرني أكتر: شو الأعراض يلي عم تحس فيها، من إيمتى، وقديش قوية؟",
+        "GREEN": (
+            "حكيم مش قادر يكتبلك جواب مفصّل هلق، بس أعراضك ما مبيّنة طارئة. "
+            "ارتاح واشرب سوائل، وإذا ما تحسنت خلال كم يوم أو ساءت، روح عالدكتور."
+        ),
+        "CONDITIONS": "ممكن يكون: ",
+        "ACTIONS": "شو فيك تعمل: ",
     },
     "franco": {
         "YELLOW": (
@@ -305,6 +311,12 @@ _FALLBACK_TEXT: dict[str, dict[str, str]] = {
             "bel Salib l A7mar 3ala 140. ma testanna."
         ),
         "CLARIFY": "khabberne aktar: shu l a3rad li 3am t7ess fiya, men emta, w 2adesh 2awiye?",
+        "GREEN": (
+            "Hakim msh 2ader yektoblak jaweb mfassal hala2, bas l a3rad ma mbayyne tar2a. "
+            "rta7 w eshrab sawa2el, w eza ma t7assanet khilel kam yom aw sa2et, ru7 3al doctor."
+        ),
+        "CONDITIONS": "momken ykun: ",
+        "ACTIONS": "shu fik ta3mel: ",
     },
     "english": {
         "YELLOW": (
@@ -320,6 +332,13 @@ _FALLBACK_TEXT: dict[str, dict[str, str]] = {
             "Can you tell me more: what symptoms are you feeling, since when, "
             "and how bad are they?"
         ),
+        "GREEN": (
+            "Hakim can't write a detailed reply right now, but your symptoms don't "
+            "look urgent. Rest and drink fluids, and see a doctor if they get worse "
+            "or don't improve in a few days."
+        ),
+        "CONDITIONS": "This could be: ",
+        "ACTIONS": "What you can do: ",
     },
 }
 
@@ -434,6 +453,35 @@ class TriageEngine:
     @staticmethod
     def _fallback_text(script: str, kind: str) -> str:
         return _FALLBACK_TEXT.get(script, _FALLBACK_TEXT["arabic"])[kind]
+
+    @classmethod
+    def _reply_from_classification(
+        cls,
+        script: str,
+        level: TriageLevel,
+        conditions: list[str],
+        actions: list[str],
+    ) -> str:
+        """Reply built from the model's own classification.
+
+        Used when classification succeeded but writing the reply failed: the
+        generic copy is written for one level ("see a doctor in 1-2 days") and
+        contradicted a GREEN badge, while the classification already says what
+        this patient should do.
+        """
+        if level == TriageLevel.RED:
+            return cls._fallback_text(script, "RED")
+        if not (conditions or actions):
+            return cls._fallback_text(script, level.value)
+        comma = "، " if script == "arabic" else ", "
+        parts = []
+        if conditions:
+            parts.append(
+                cls._fallback_text(script, "CONDITIONS") + comma.join(conditions)
+            )
+        if actions:
+            parts.append(cls._fallback_text(script, "ACTIONS") + "; ".join(actions))
+        return ".\n".join(parts) + "."
 
     @staticmethod
     def _fallback_actions(script: str, level: TriageLevel) -> list[str]:
@@ -625,8 +673,8 @@ class TriageEngine:
                 response_text = response_resp.text.strip()
             except LLMError as exc:
                 logger.error("Response generation unavailable, using fallback: %s", exc)
-                response_text = self._fallback_text(
-                    "arabic", "RED" if triage_level == TriageLevel.RED else "YELLOW"
+                response_text = self._reply_from_classification(
+                    "arabic", triage_level, conditions, actions
                 )
 
             disclaimer = (
@@ -864,7 +912,11 @@ class TriageEngine:
 
         # Step 5: Stream response generation
         obs.set_step("stream-response")
-        fallback = self._fallback_text(script, "RED" if is_emergency else "YELLOW")
+        fallback = (
+            self._reply_from_classification(script, triage_level, conditions, actions)
+            if llm_available
+            else self._fallback_text(script, "RED" if is_emergency else "YELLOW")
+        )
         if llm_available:
             chunks = self._stream_or_fallback(
                 prompt=self._get_response_prompt(script).format(
