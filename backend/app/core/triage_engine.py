@@ -59,6 +59,72 @@ _EMERGENCY_RE = re.compile(
     "|".join(re.escape(s) for s in _EMERGENCY_SUBSTRINGS), re.IGNORECASE
 )
 
+# Red-flag presentations phrased the way patients actually write them.  These
+# used to reach RED only if the LLM classified them, so during a provider
+# outage a stroke or anaphylaxis got the "see a doctor in 1-2 days" fallback.
+# Arabic patterns are written with bare alef; queries are folded to match.
+_RED_FLAG_RES = [
+    re.compile(p, re.IGNORECASE)
+    for p in (
+        # Chest pain with words in between ("وجع كتير بصدري", "pain in my chest")
+        r"(?:وجع|الم|ضغط|تقل)\S*(?:\s+\S+){0,2}\s+(?:ب?صدري|بالصدر|صدر)",
+        r"\b(?:pain|pressure|tightness|heaviness)\s+(?:in|on)\s+(?:my\s+)?chest\b",
+        r"\bchest\s+(?:hurts|is\s+tight)",
+        # Cyanosis
+        r"(?:شفاف|شفايف|وجه)\S*(?:\s+\S+){0,3}?\s+(?:ازرق|زرق)",
+        r"\b(?:lips|face|skin)\s+(?:are\s+|is\s+)?(?:turning\s+|turned\s+|going\s+)?blue\b",
+        # Can't breathe / not breathing / unresponsive
+        r"(?:ما|مش|مو)\s+(?:عم\s+)?(?:ب?قدر|قادر|قادرة)\s+ا?تنفس",
+        r"(?:مش|ما)\s+عم\s+(?:يصحى|يصحا|تصحى|يتنفس|تتنفس|يوعى|توعى)",
+        r"فاقد الوعي|مغمى عليه|مغمى عليها",
+        r"\b(?:not|isn'?t|stopped)\s+breathing\b|\bunresponsive\b|\bwon'?t\s+wake\s+up\b",
+        r"\bma\s+3am\s+(?:yes7a|yetnaffas|tetnaffas)\b",
+        # Stroke (face droop, speech, one-sided weakness)
+        r"(?:وجه|تم)\S*(?:\s+\S+){0,3}?\s+(?:يتعوج|تعوج|معوج|مايل)",
+        r"(?:ما|مش)\s+(?:عم\s+)?(?:بقدر|قادر)\s+احكي",
+        r"\b(?:wej+i|wejhi|wij+i)\s+(?:3am\s+)?yet3aw+aj",
+        r"\bma\s+(?:2edr|2ader|ba2der)\s+(?:7aki|e7ke)\b|\bma\s+bet7arrak\b",
+        r"\bface\s+(?:is\s+)?droop|\bslurred\s+speech\b",
+        r"\bcan'?t\s+(?:move|feel)\s+(?:my|his|her)\s+(?:(?:left|right)\s+)?(?:arm|leg|face|side)\b",
+        # Anaphylaxis
+        r"(?:وجه|شفاف|لسان|زلعوم|زور)\S*(?:\s+\S+){0,3}?\s+(?:يتورم|تتورم|منفخ|وارم)",
+        r"(?:ما|مش)\s+(?:عم\s+)?(?:بقدر|قادر)\s+ابلع",
+        r"\b(?:wejhi|wejji|shfefi)\s+(?:3am\s+)?yet2aw+ar|\bma\s+(?:2edr|2ader|ba2der)\s+ebla3\b",
+        r"\bthroat\s+(?:is\s+)?closing\b|\bcan'?t\s+swallow\b",
+        r"\b(?:face|lips|tongue|throat)\s+(?:is\s+|are\s+)?swelling\b",
+        # Coughing or vomiting blood
+        r"(?:بسعل|بكح|اسعل|سعلة|كحة|استفرغ|بتقي)\S*\s+(?:\S+\s+)?دم",
+        r"\b(?:betsaw+et|bsa3el|bso3ol|2a2ayt|bet2ayya)\s+b?dam\b",
+        r"\b(?:coughing|cough|vomiting|throwing)\s+(?:up\s+)?blood\b",
+        # Active seizure
+        r"\b(?:having|had)\s+a\s+seizure\b|\bconvulsing\b",
+    )
+]
+
+# A blood-sugar reading in the DKA/HHS or severe-hypoglycaemia range.
+_GLUCOSE_RE = re.compile(
+    r"(?:blood\s+sugar|sugar|glucose|السكر|السكري|sokkar|sukkar)\D{0,20}?(\d{2,3})\b",
+    re.IGNORECASE,
+)
+
+_ALEF_FORMS = str.maketrans({"أ": "ا", "إ": "ا", "آ": "ا", "ٱ": "ا"})
+
+
+def _is_emergency(text: str) -> bool:
+    """True when the message alone is enough to call RED."""
+    candidates = (text, text.translate(_ALEF_FORMS))
+    for t in candidates:
+        if _EMERGENCY_RE.search(t) or any(r.search(t) for r in _RED_FLAG_RES):
+            return True
+    for m in _GLUCOSE_RE.finditer(text):
+        reading = int(m.group(1))
+        if reading >= 400 or reading <= 54:
+            return True
+    return False
+
+
+_CRITICAL_SEVERITY = {"critical", "moderate_to_critical"}
+
 # ---------------------------------------------------------------------------
 # Refusal trigger patterns (CLAUDE.md safety rules)
 # ---------------------------------------------------------------------------
@@ -300,6 +366,8 @@ class TriageResult:
     needs_clarification: bool = False
     clarification_question: str | None = None
     total_tokens: int = 0
+    # True when no LLM was reachable and the level came from rules alone.
+    used_fallback: bool = False
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -442,7 +510,7 @@ class TriageEngine:
                 return result
 
             # Emergency fast-path: skip Steps 2-4 -> instant RED
-            if _EMERGENCY_RE.search(query):
+            if _is_emergency(query):
                 logger.info("Step 1b -- emergency detected, fast-path RED")
                 obs.set_step("emergency-response")
                 try:
@@ -519,9 +587,14 @@ class TriageEngine:
                 )
             except LLMError as exc:
                 logger.error("Classification unavailable, using fallback: %s", exc)
-                result = self._fallback_result(TriageLevel.YELLOW)
+                result = self._fallback_result(self._fallback_level(symptoms))
+                result.used_fallback = True
                 obs.end_trace(
-                    trace, output={"triage_level": "YELLOW", "llm_available": False}
+                    trace,
+                    output={
+                        "triage_level": result.triage_level.value,
+                        "llm_available": False,
+                    },
                 )
                 return result
             total_tokens += classify_resp.total_tokens
@@ -659,7 +732,7 @@ class TriageEngine:
 
         # Emergency fast-path → instant RED.  Only the latest message counts:
         # an emergency mentioned earlier was already escalated on that turn.
-        if _EMERGENCY_RE.search(query):
+        if _is_emergency(query):
             obs.set_step("emergency-response")
             actions = self._fallback_actions(script, TriageLevel.RED)
             yield {
@@ -769,11 +842,11 @@ class TriageEngine:
                 classify_resp.text
             )
         except LLMError as exc:
-            # Emergencies already took the fast path above, so the conservative
-            # default here is "see a doctor soon".
+            # Emergencies already took the fast path above; beyond those, only
+            # symptoms the lexicon marks critical justify RED without a model.
             logger.error("Classification unavailable, using fallback: %s", exc)
             llm_available = False
-            triage_level = TriageLevel.YELLOW
+            triage_level = self._fallback_level(symptoms)
             conditions = []
             actions = self._fallback_actions(script, triage_level)
 
@@ -864,6 +937,15 @@ class TriageEngine:
     # ------------------------------------------------------------------
     # Private helpers
     # ------------------------------------------------------------------
+
+    @staticmethod
+    def _fallback_level(symptoms: list) -> TriageLevel:
+        """Triage level from rules alone, for when no LLM is reachable."""
+        if any(
+            getattr(s, "severity_hint", None) in _CRITICAL_SEVERITY for s in symptoms
+        ):
+            return TriageLevel.RED
+        return TriageLevel.YELLOW
 
     def _fallback_result(self, level: TriageLevel) -> TriageResult:
         """Rule-based result for when no LLM provider is reachable."""

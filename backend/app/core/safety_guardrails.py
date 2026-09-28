@@ -266,6 +266,10 @@ _RED_FLAG_PATTERNS: list[_RedFlagPattern] = [
             "\u0636\u0631\u0628\u062a \u0631\u0627\u0633\u064a",  # ضربت راسي
             "\u0648\u0642\u0639\u062a \u0639\u0644\u0649 \u0631\u0627\u0633\u064a",  # وقعت على راسي
             "darabt rasi",
+            "اصطدم راسي",  # my head struck (something)
+            "خبطت راسي",  # I banged my head
+            "انضرب راسي",  # my head got hit
+            "wa2a3t 3ala rasi",
         ],
         triggers_b=[
             "vomiting",
@@ -275,6 +279,12 @@ _RED_FLAG_PATTERNS: list[_RedFlagPattern] = [
             "confusion",
             "blurred vision",
             "seizure",
+            "بتقي",  # vomiting (Lebanese)
+            "استفرغ",  # vomit
+            "صداع شديد",  # severe headache
+            "بشوف مش منيح",  # can't see properly
+            "2a2ayt",
+            "ste3ta2",
             "\u0631\u062c\u0651\u0639",  # رجّع
             "\u0636\u064a\u0627\u0639 \u0648\u0639\u064a",  # ضياع وعي
         ],
@@ -445,6 +455,19 @@ _DISCLAIMER_FRANCO = (
 )
 _EMERGENCY_DISCLAIMER_FRANCO = "hal a3rad badda 3inaye tar2a fawran. ettesel bel Salib l A7mar 3ala 140 aw ru7 3al taware2 hala2."
 
+_ALEF_FORMS = str.maketrans({"أ": "ا", "إ": "ا", "آ": "ا", "ٱ": "ا"})
+
+
+def _fold_alef(text: str) -> str:
+    """Fold hamza/madda alef forms to a bare alef.
+
+    Spelling of these varies freely in everyday Arabic, and a pattern written
+    with one form silently missed the other: "أفكار إنتحارية" (suicidal
+    thoughts) slipped past the "انتحار" rule.
+    """
+    return text.translate(_ALEF_FORMS)
+
+
 _ARABIC_LETTER_RE = re.compile("[\u0621-\u064a]")
 
 
@@ -480,7 +503,16 @@ class SafetyGuardrails:
           5. Scope: lab results (refer to doctor)
           6. Compound emergency red flags (force RED)
           7. Scope: medication or dose requests (refer to pharmacist)
+
+        Infant and pregnancy refusals escalate to RED: their replies send the
+        patient to the ER or maternity unit immediately, and the badge should
+        agree with that.  Every rule is also checked against the query with
+        hamza forms folded (see _fold_alef), since patients write "إنتحار" and
+        "انتحار" interchangeably.
         """
+        folded = _fold_alef(query)
+        if folded != query:
+            query = f"{query}\n{folded}"
         if _SUICIDAL_RE.search(query):
             return GuardrailResult(
                 is_safe=False,
@@ -500,12 +532,14 @@ class SafetyGuardrails:
                 is_safe=False,
                 violation_type=ViolationType.SCOPE_INFANT,
                 rejection_message=_REJECTION[ViolationType.SCOPE_INFANT],
+                force_red=True,
             )
         if _PREGNANCY_RE.search(query):
             return GuardrailResult(
                 is_safe=False,
                 violation_type=ViolationType.SCOPE_PREGNANCY,
                 rejection_message=_REJECTION[ViolationType.SCOPE_PREGNANCY],
+                force_red=True,
             )
         if _LAB_RE.search(query):
             return GuardrailResult(

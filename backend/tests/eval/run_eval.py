@@ -270,15 +270,23 @@ async def run_scenario(
     if not guard_check.is_safe:
         result.latency_ms = (time.monotonic() - start) * 1000
         result.guardrail_blocked = True
-        # Map guardrail block to expected triage level for scoring
-        result.actual_level = "RED" if guard_check.force_red else "YELLOW"
+        # Map guardrail block to expected triage level for scoring.  A crisis
+        # referral is urgent even though it isn't shown as a physical RED.
+        escalated = guardrails.is_emergency_violation(guard_check)
+        result.actual_level = "RED" if escalated else "YELLOW"
         result.level_correct = result.actual_level == result.expected_level
-        result.escalation_correct = result.should_escalate == guard_check.force_red
+        result.escalation_correct = result.should_escalate == escalated
         return result
 
     try:
         triage_result = await engine.triage(input_text)
         result.latency_ms = (time.monotonic() - start) * 1000
+        if triage_result.used_fallback:
+            # The engine answered from rules because no provider was reachable.
+            # That keeps patients safe but says nothing about the model, so it
+            # counts as an outage (inconclusive), not as a triage result.
+            result.error = f"{_EXHAUSTION_MARKER} — answered by rule-based fallback"
+            return result
         result.actual_level = triage_result.triage_level.value
         result.response_text = triage_result.response_text
         result.actual_conditions = triage_result.possible_conditions

@@ -123,6 +123,12 @@ User Input
 
 Refusals are returned in the patient's language (Arabic script, Franco-Arab, or English).
 
+Infant and pregnancy refusals are escalated to RED (their replies send the patient to the ER or maternity unit immediately). All rules also match the query with hamza forms folded (أ/إ/آ → ا), so "إنتحار" and "انتحار" are treated alike.
+
+## Emergencies without an LLM
+
+The triage engine's emergency fast path (`_is_emergency`) recognises common red-flag presentations as patients phrase them in Arabic, Franco-Arab and English — chest pain, cyanosis, not breathing or unresponsive, stroke signs, anaphylaxis, coughing or vomiting blood, active seizures, and blood sugar ≥ 400 or ≤ 54 — and answers RED without calling a model. When every LLM provider is down, other queries fall back to YELLOW, or RED if the lexicon marks an extracted symptom critical. The evaluation runner counts fallback answers as a provider outage (inconclusive), never as triage results.
+
 ## Disclaimers
 
 Every Hakim response includes a disclaimer. There are two variants:
