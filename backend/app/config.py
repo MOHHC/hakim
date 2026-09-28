@@ -24,10 +24,13 @@ class Settings(BaseSettings):
     # Model names are settings so a provider retiring or gating a model can be
     # fixed from the hosting dashboard instead of needing a redeploy.
     gemini_model: str = "gemini-2.5-flash"
-    groq_model: str = "llama-3.3-70b-versatile"
+    # llama-3.3-70b-versatile is not available to every Groq account (it 404s
+    # for the production key); qwen3.8-27b answers in natural Lebanese Arabic
+    # in ~3s, which matters for a backup model.
+    groq_model: str = "qwen/qwen3.8-27b"
 
     # Client-side pacing, in requests per minute.  Defaults target the free
-    # tiers of gemini-2.5-flash (10 RPM) and llama-3.3-70b-versatile (30 RPM);
+    # tiers of gemini-2.5-flash (10 RPM) and Groq (30 RPM);
     # raise them if the deployment has paid quota.
     gemini_rpm: int = 10
     groq_rpm: int = 30
