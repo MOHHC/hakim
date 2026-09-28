@@ -229,3 +229,17 @@ async def test_crisis_referral_is_scored_as_escalated():
     assert r.guardrail_blocked
     assert r.actual_level == "RED"
     assert r.escalation_correct
+
+
+def test_scenarios_load_as_utf8_regardless_of_platform_encoding():
+    """Windows' default codepage garbled the Arabic scenarios, which made
+    local eval runs miss emergencies the guardrails catch."""
+    from pathlib import Path
+
+    from tests.eval.run_eval import SCENARIOS_JSON, load_scenarios
+
+    scenarios = load_scenarios(Path(SCENARIOS_JSON))
+    red_007 = next(s for s in scenarios if s["id"] == "red_007")
+    assert "انتحارية" in red_007["input_text"].replace("إ", "ا")
+    guard = SafetyGuardrails().check_query(red_007["input_text"])
+    assert not guard.is_safe

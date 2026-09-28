@@ -9,9 +9,9 @@ jobs:
   eval-pipeline:
     name: Evaluation (emergency recall >= 95%)
     runs-on: ubuntu-latest
-    # Pacing the LLM calls under the providers' free-tier RPM makes a full
-    # 50-scenario run take ~10-15 min; the timeout is a backstop, not a target.
-    timeout-minutes: 40
+    # Pacing the LLM calls under the providers' free-tier limits makes a full
+    # 50-scenario run take ~15-20 min; the timeout is a backstop, not a target.
+    timeout-minutes: 45
     defaults:
       run:
         working-directory: backend
@@ -27,6 +27,10 @@ jobs:
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+          # Groq's free tier allows ~1000 output tokens/min (~6 triage calls);
+          # at the app's burst-friendly 30 RPM the run spilled onto Gemini,
+          # whose free tier allows only ~20 requests a day.
+          GROQ_RPM: "6"
         run: python -m tests.eval.run_eval --skip-quality --concurrency 1 --output eval_results.md
       # Always publish the report — an inconclusive run needs its error detail
       # just as much as a failing one.

@@ -29,8 +29,8 @@ graph TB
     end
 
     subgraph External ["External Services"]
-        Gemini[Gemini 2.5 Flash]
-        Groq[Groq Llama 3.3 70B<br/>Fallback]
+        Groq[Groq Qwen 3.8 27B<br/>Primary]
+        Gemini[Gemini 3.6 Flash<br/>Backup]
         LF[Langfuse<br/>Observability]
     end
 
@@ -145,13 +145,20 @@ Each lexicon entry maps: dialect term -> MSA equivalent -> English medical term,
 Dual-provider architecture with resilience:
 
 ```
-Primary: Gemini 2.5 Flash (free tier, 15 RPM)
-  - Rate limiting: Token bucket (14 RPM safe margin)
-  - Streaming: Server-Sent Events
+Primary: Groq qwen/qwen3.8-27b (LLM_PRIMARY=groq, the default)
+  - ~1-2s per call; free tier ~1000 output tokens/min, so requests are
+    capped at GROQ_MAX_TOKENS (500)
+  - OpenAI-compatible API, streaming
 
-Fallback: Groq Llama 3.3 70B
-  - Activated on: Gemini timeout, rate limit, or error
-  - OpenAI-compatible API
+Backup: Gemini gemini-3.6-flash, thinking level "minimal"
+  - Used when the primary times out, is rate limited, or errors
+  - Free tier allows ~20 requests/day on this model, so it absorbs spikes
+    rather than carrying traffic
+  - Set LLM_PRIMARY=gemini to swap the order
+
+Failover: 5s connect / 12s read timeouts; a provider with a backup behind
+it gets one retry (none on timeout) and is then parked by its circuit
+breaker for 60s. Rate limiting is a 60s sliding window per provider.
 
 Both providers share:
   - LRU Cache: 256 entries, 10-min TTL, temp <= 0.2 only
@@ -232,7 +239,7 @@ Server-Sent Events are simpler, work through CDNs/proxies, and are sufficient fo
 
 ### Why Gemini Free Tier?
 
-Hakim is designed to be completely free to run. Gemini 2.5 Flash offers strong Arabic support on a free tier (15 RPM). Groq provides a fast fallback. No paid API required.
+Hakim is designed to be completely free to run. Groq's free tier answers fast with good Lebanese Arabic, and Gemini's free tier backs it up. No paid API required; if traffic outgrows the free tiers, enabling paid billing on either provider is the upgrade path.
 
 ### Why No Database?
 

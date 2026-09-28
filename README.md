@@ -48,7 +48,7 @@ flowchart LR
 |-------|-----------|-----|
 | **Backend** | FastAPI + Python 3.11 | Async-first, native SSE streaming, type-safe |
 | **Frontend** | React 19 + TypeScript + Tailwind CSS v4 | Modern, fast, RTL-ready |
-| **LLM** | Gemini 2.5 Flash (primary), Groq Llama 3.3 70B (fallback) | Free tier, low latency, Arabic support |
+| **LLM** | Groq Qwen 3.8 27B (primary), Gemini 3.6 Flash (backup); order set by `LLM_PRIMARY` | Free tier, ~2s replies, natural Lebanese Arabic |
 | **Embeddings** | Gemini text-embedding-004 (768d) | Best Arabic embedding quality on free tier |
 | **Vector DB** | ChromaDB | Local, zero-config, hybrid search |
 | **Observability** | Langfuse | Open-source LLM tracing, cost tracking |

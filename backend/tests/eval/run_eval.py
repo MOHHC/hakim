@@ -577,6 +577,13 @@ def _is_exhaustion(result: ScenarioResult) -> bool:
     return bool(result.error) and _EXHAUSTION_MARKER in (result.error or "")
 
 
+def load_scenarios(scenarios_path: Path) -> list[dict]:
+    # Explicit UTF-8: Windows' default codepage garbled every Arabic scenario,
+    # so local runs scored emergencies the guardrails would have caught.
+    with open(scenarios_path, encoding="utf-8") as f:
+        return json.load(f)["scenarios"]
+
+
 async def main(
     scenarios_path: Path,
     output_path: Path,
@@ -586,10 +593,7 @@ async def main(
     provider_retries: int = 2,
     provider_cooldown: float = 65.0,
 ) -> int:
-    # Load scenarios
-    with open(scenarios_path) as f:
-        data = json.load(f)
-    scenarios = data["scenarios"]
+    scenarios = load_scenarios(scenarios_path)
     print(f"Loaded {len(scenarios)} scenarios from {scenarios_path}")
 
     # Check API keys
