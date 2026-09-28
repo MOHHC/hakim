@@ -197,8 +197,8 @@ async def test_retries_on_transient_error():
     async def flaky_post(url, **kwargs):
         nonlocal call_count
         call_count += 1
-        # Fail Gemini twice, succeed on 3rd (still Gemini retry 3)
-        if "generativelanguage" in url and call_count < 3:
+        # Fail Gemini once, succeed on its one retry
+        if "generativelanguage" in url and call_count < 2:
             raise httpx.RequestError("timeout")
         if "generativelanguage" in url:
             return _mock_http_response(_gemini_response("recovered"))
@@ -233,10 +233,59 @@ async def test_exponential_backoff_delays():
         with patch("asyncio.sleep", side_effect=mock_sleep):
             await client.generate("test")
 
-    # Gemini retries produce delays: 1.0, 2.0 (3 attempts = 2 sleeps)
-    assert len(sleep_calls) == 2
-    assert sleep_calls[0] == pytest.approx(1.0)
-    assert sleep_calls[1] == pytest.approx(2.0)
+    # With Groq available, Gemini gets one retry (one 1s backoff) before the
+    # fallback answers, instead of three attempts the patient has to wait on.
+    assert sleep_calls == [pytest.approx(1.0)]
+
+
+@pytest.mark.asyncio
+async def test_last_provider_keeps_full_exponential_backoff(monkeypatch):
+    """With nothing to fall back to, retrying is the only way to answer."""
+    monkeypatch.setattr(GEMINI_CONFIG, "api_key", "")
+    client = LLMClient()
+    sleep_calls = []
+
+    async def mock_post(url, **kwargs):
+        return _mock_http_response({}, status_code=503)
+
+    async def mock_sleep(delay):
+        sleep_calls.append(delay)
+
+    with patch("httpx.AsyncClient.post", new_callable=AsyncMock, side_effect=mock_post):
+        with patch("asyncio.sleep", side_effect=mock_sleep):
+            with pytest.raises(LLMError):
+                await client.generate("test")
+
+    assert sleep_calls == [pytest.approx(1.0), pytest.approx(2.0)]
+
+
+@pytest.mark.asyncio
+async def test_primary_timeout_goes_straight_to_fallback_and_is_parked():
+    client = LLMClient()
+    gemini_calls = 0
+
+    async def mock_post(url, **kwargs):
+        nonlocal gemini_calls
+        if "generativelanguage" in url:
+            gemini_calls += 1
+            raise httpx.ReadTimeout("hung")
+        return _mock_http_response(_groq_response("ok"))
+
+    with patch("httpx.AsyncClient.post", new_callable=AsyncMock, side_effect=mock_post):
+        with patch("asyncio.sleep", new_callable=AsyncMock):
+            first = await client.generate("first question")
+            second = await client.generate("second question")
+
+    assert first.provider == "groq" and second.provider == "groq"
+    # One timeout, no retry, and the second call skips Gemini entirely
+    assert gemini_calls == 1
+    assert _gemini_breaker.is_open()
+
+
+def test_client_uses_short_connect_timeout():
+    t = LLMClient()._timeout
+    assert t.connect == pytest.approx(5.0)
+    assert t.read == pytest.approx(12.0)
 
 
 # ---------------------------------------------------------------------------
@@ -349,9 +398,20 @@ async def test_token_counts_from_groq():
 # ---------------------------------------------------------------------------
 
 
-def test_rate_limiter_interval_derives_from_rpm():
-    assert _RateLimiter(max_rpm=10)._interval == pytest.approx(6.0)
-    assert _RateLimiter(max_rpm=30)._interval == pytest.approx(2.0)
+@pytest.mark.asyncio
+async def test_rate_limiter_allows_a_burst_up_to_the_rpm():
+    """A chat reply's back-to-back calls must not wait on each other."""
+    limiter = _RateLimiter(max_rpm=10)
+    slept: list[float] = []
+
+    async def fake_sleep(seconds):
+        slept.append(seconds)
+
+    with patch("asyncio.sleep", new=fake_sleep):
+        for _ in range(10):
+            await limiter.acquire()
+
+    assert slept == []
 
 
 def test_rate_limiter_rejects_non_positive_rpm():
@@ -360,8 +420,8 @@ def test_rate_limiter_rejects_non_positive_rpm():
 
 
 @pytest.mark.asyncio
-async def test_rate_limiter_paces_successive_acquires():
-    limiter = _RateLimiter(max_rpm=60)  # 1s interval
+async def test_rate_limiter_waits_once_the_minute_budget_is_spent():
+    limiter = _RateLimiter(max_rpm=2)
     slept: list[float] = []
 
     async def fake_sleep(seconds):
@@ -370,10 +430,11 @@ async def test_rate_limiter_paces_successive_acquires():
     with patch("asyncio.sleep", new=fake_sleep):
         await limiter.acquire()
         await limiter.acquire()
+        await limiter.acquire()  # third call in the same minute
 
-    # First acquire is free, second must wait out the interval.
+    # Only the call over budget waits, and for (almost) the rest of the window
     assert len(slept) == 1
-    assert slept[0] > 0
+    assert 55 < slept[0] <= 60
 
 
 @pytest.mark.asyncio

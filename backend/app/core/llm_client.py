@@ -5,7 +5,7 @@ import hashlib
 import json
 import logging
 import time
-from collections import OrderedDict
+from collections import OrderedDict, deque
 from collections.abc import AsyncGenerator
 from dataclasses import dataclass, field
 from typing import Any
@@ -158,24 +158,34 @@ class _ResponseCache:
 
 
 class _RateLimiter:
-    """Async token bucket rate limiter."""
+    """Async sliding-window limiter: at most ``max_rpm`` calls in any 60s.
+
+    It used to space every call evenly (6s apart at 10 RPM), which put a fixed
+    wait between the two calls a single chat reply makes even when the
+    provider was nowhere near its limit.  A window allows that short burst and
+    only waits once the per-minute budget is actually spent.
+    """
+
+    WINDOW_SECONDS = 60.0
 
     def __init__(self, max_rpm: int) -> None:
         if max_rpm <= 0:
             raise ValueError(f"max_rpm must be positive, got {max_rpm}")
-        self._interval = 60.0 / max_rpm  # seconds between requests
+        self._max = max_rpm
         self._lock = asyncio.Lock()
-        self._last_request: float = 0.0
+        self._calls: deque[float] = deque()
 
     async def acquire(self) -> None:
         async with self._lock:
             now = time.monotonic()
-            elapsed = now - self._last_request
-            if elapsed < self._interval:
-                wait = self._interval - elapsed
+            while self._calls and now - self._calls[0] >= self.WINDOW_SECONDS:
+                self._calls.popleft()
+            if len(self._calls) >= self._max:
+                wait = self.WINDOW_SECONDS - (now - self._calls[0])
                 logger.debug("Rate limiter: waiting %.1fs", wait)
                 await asyncio.sleep(wait)
-            self._last_request = time.monotonic()
+                self._calls.popleft()
+            self._calls.append(time.monotonic())
 
 
 # ---------------------------------------------------------------------------
@@ -305,10 +315,23 @@ class LLMClient:
     """Async LLM client with Gemini primary, Groq fallback, caching, and rate limiting."""
 
     MAX_RETRIES = 3
+    # Attempts for a provider that still has a fallback behind it.  The patient
+    # is waiting: one retry covers a blip, and anything longer is better spent
+    # on the fallback, which answers in a few seconds.
+    MAX_RETRIES_WITH_FALLBACK = 2
     RETRY_BASE_DELAY = 1.0  # seconds
 
-    def __init__(self, timeout: float = 60.0) -> None:
-        self._timeout = timeout
+    def __init__(self, timeout: float = 12.0) -> None:
+        # A short connect timeout finds an unreachable provider quickly; the read
+        # timeout bounds a hung one (it applies between streamed chunks too).
+        self._timeout = httpx.Timeout(timeout, connect=5.0)
+
+    @staticmethod
+    def _has_fallback_after(cfg: ProviderConfig) -> bool:
+        """True when a later provider could still answer if this one fails."""
+        order = (GEMINI_CONFIG, GROQ_CONFIG)
+        later = order[order.index(cfg) + 1 :] if cfg in order else ()
+        return any(p.api_key and not _breaker_for(p).is_open() for p in later)
 
     async def generate(
         self,
@@ -353,7 +376,11 @@ class LLMClient:
     ) -> LLMResponse:
         last_exc: Exception | None = None
         attempt = 0
-        while attempt < self.MAX_RETRIES:
+        has_fallback = self._has_fallback_after(cfg)
+        max_attempts = (
+            self.MAX_RETRIES_WITH_FALLBACK if has_fallback else self.MAX_RETRIES
+        )
+        while attempt < max_attempts:
             try:
                 return await self._call_provider(
                     cfg, prompt, system_prompt, temperature, max_tokens
@@ -392,19 +419,29 @@ class LLMClient:
                         _breaker_for(cfg).trip()
                     break
                 attempt += 1
-                await self._backoff(cfg, attempt, exc)
+                await self._backoff(cfg, attempt, exc, max_attempts)
             except (httpx.RequestError, LLMError) as exc:
                 last_exc = exc
+                # A timed-out provider is likely to time out again; with a
+                # fallback available, waiting another full timeout on it is
+                # the slowest possible way to answer.
+                if has_fallback and isinstance(exc, httpx.TimeoutException):
+                    logger.warning("%s timed out, switching to fallback", cfg.name)
+                    break
                 attempt += 1
-                await self._backoff(cfg, attempt, exc)
+                await self._backoff(cfg, attempt, exc, max_attempts)
 
-        raise LLMError(
-            f"{cfg.name} failed after {self.MAX_RETRIES} attempts: {last_exc}"
-        ) from last_exc
+        if has_fallback:
+            # Park it so the rest of this reply (and the next few) go straight
+            # to the fallback instead of re-paying the failure.
+            _breaker_for(cfg).trip()
+        raise LLMError(f"{cfg.name} failed: {last_exc}") from last_exc
 
-    async def _backoff(self, cfg: ProviderConfig, attempt: int, exc: Exception) -> None:
+    async def _backoff(
+        self, cfg: ProviderConfig, attempt: int, exc: Exception, max_attempts: int
+    ) -> None:
         """Exponentially back off, unless this was the final attempt."""
-        if attempt >= self.MAX_RETRIES:
+        if attempt >= max_attempts:
             return
         delay = self.RETRY_BASE_DELAY * (2 ** (attempt - 1))
         logger.debug(
@@ -599,7 +636,9 @@ class LLMClient:
                 if status in _KEY_ERRORS:
                     if not cfg.rotate_key():
                         _breaker_for(cfg).trip()
-                elif status == 404:
+                elif status == 404 or self._has_fallback_after(cfg):
+                    # 5xx/overload: park it so the fallback below (and the next
+                    # calls) don't wait on it again.
                     _breaker_for(cfg).trip()
                 logger.warning(
                     "%s streaming failed (HTTP %d): %s",
@@ -618,6 +657,8 @@ class LLMClient:
                     return
             except Exception as exc:
                 logger.warning("%s streaming failed: %s", cfg.name, exc)
+                if self._has_fallback_after(cfg):
+                    _breaker_for(cfg).trip()  # timeouts / network: don't retry it
                 if yielded:
                     obs.log_stream_generation(
                         provider=cfg.name,
