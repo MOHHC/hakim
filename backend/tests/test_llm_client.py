@@ -23,6 +23,9 @@ def _fake_api_keys(monkeypatch):
     """Ensure provider configs have fake API keys so tests don't skip providers."""
     monkeypatch.setattr(GEMINI_CONFIG, "api_key", "fake-gemini-key")
     monkeypatch.setattr(GROQ_CONFIG, "api_key", "fake-groq-key")
+    # Most tests here describe Gemini-primary behaviour; the Groq-primary
+    # default has its own tests below.
+    monkeypatch.setattr("app.config.settings.llm_primary", "gemini")
     # Disable rate limiters so they don't inject extra sleeps into tests
     monkeypatch.setattr("app.core.llm_client._gemini_limiter.acquire", AsyncMock())
     monkeypatch.setattr("app.core.llm_client._groq_limiter.acquire", AsyncMock())
@@ -574,3 +577,89 @@ async def test_all_keys_exhausted_still_fails_cleanly(monkeypatch):
     ):
         with pytest.raises(LLMError, match="All providers failed"):
             await client.generate("chest pain")
+
+
+# ---------------------------------------------------------------------------
+# Provider order and Gemini thinking
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_groq_primary_answers_first(monkeypatch):
+    monkeypatch.setattr("app.config.settings.llm_primary", "groq")
+    urls: list[str] = []
+
+    async def mock_post(url, **kwargs):
+        urls.append(url)
+        return _mock_http_response(_groq_response("from groq"))
+
+    with patch("httpx.AsyncClient.post", new_callable=AsyncMock, side_effect=mock_post):
+        result = await LLMClient().generate("headache")
+
+    assert result.provider == "groq"
+    assert all("groq" in u for u in urls)
+
+
+@pytest.mark.asyncio
+async def test_groq_primary_falls_back_to_gemini(monkeypatch):
+    monkeypatch.setattr("app.config.settings.llm_primary", "groq")
+
+    async def mock_post(url, **kwargs):
+        if "groq" in url:
+            return _mock_http_response({}, status_code=429)
+        return _mock_http_response(_gemini_response("from gemini"))
+
+    with patch("httpx.AsyncClient.post", new_callable=AsyncMock, side_effect=mock_post):
+        with patch("asyncio.sleep", new_callable=AsyncMock):
+            result = await LLMClient().generate("headache")
+
+    assert result.provider == "gemini"
+
+
+@pytest.mark.asyncio
+async def test_gemini_requests_minimal_thinking(monkeypatch):
+    monkeypatch.setattr("app.config.settings.gemini_thinking_level", "minimal")
+    bodies: list[dict] = []
+
+    async def mock_post(url, **kwargs):
+        bodies.append(kwargs["json"])
+        return _mock_http_response(_gemini_response("ok"))
+
+    with patch("httpx.AsyncClient.post", new_callable=AsyncMock, side_effect=mock_post):
+        await LLMClient().generate("headache")
+
+    assert bodies[0]["generationConfig"]["thinkingConfig"] == {
+        "thinkingLevel": "minimal"
+    }
+
+
+@pytest.mark.asyncio
+async def test_empty_thinking_level_leaves_model_default(monkeypatch):
+    monkeypatch.setattr("app.config.settings.gemini_thinking_level", "")
+    bodies: list[dict] = []
+
+    async def mock_post(url, **kwargs):
+        bodies.append(kwargs["json"])
+        return _mock_http_response(_gemini_response("ok"))
+
+    with patch("httpx.AsyncClient.post", new_callable=AsyncMock, side_effect=mock_post):
+        await LLMClient().generate("headache")
+
+    assert "thinkingConfig" not in bodies[0]["generationConfig"]
+
+
+@pytest.mark.asyncio
+async def test_groq_max_tokens_is_capped(monkeypatch):
+    """Groq counts max_tokens against a small per-minute output budget."""
+    monkeypatch.setattr("app.config.settings.llm_primary", "groq")
+    monkeypatch.setattr("app.config.settings.groq_max_tokens", 500)
+    bodies: list[dict] = []
+
+    async def mock_post(url, **kwargs):
+        bodies.append(kwargs["json"])
+        return _mock_http_response(_groq_response("ok"))
+
+    with patch("httpx.AsyncClient.post", new_callable=AsyncMock, side_effect=mock_post):
+        await LLMClient().generate("headache", max_tokens=2048)
+
+    assert bodies[0]["max_tokens"] == 500

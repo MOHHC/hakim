@@ -247,6 +247,20 @@ def _breaker_for(cfg: ProviderConfig) -> _CircuitBreaker:
     return _gemini_breaker if cfg.name == "gemini" else _groq_breaker
 
 
+def _provider_order() -> tuple[ProviderConfig, ProviderConfig]:
+    """Providers in the order they are tried (settings.llm_primary first)."""
+    if settings.llm_primary.strip().lower() == "gemini":
+        return (GEMINI_CONFIG, GROQ_CONFIG)
+    return (GROQ_CONFIG, GEMINI_CONFIG)
+
+
+def _gemini_generation_config(temperature: float, max_tokens: int) -> dict[str, Any]:
+    config: dict[str, Any] = {"temperature": temperature, "maxOutputTokens": max_tokens}
+    if settings.gemini_thinking_level:
+        config["thinkingConfig"] = {"thinkingLevel": settings.gemini_thinking_level}
+    return config
+
+
 def _error_detail(exc: httpx.HTTPStatusError) -> str:
     """Best-effort snippet of the provider's error body, for the logs.
 
@@ -270,12 +284,14 @@ _PROBE_TTL_SECONDS = 300.0
 
 
 async def probe_providers(force: bool = False) -> dict[str, ProviderStatus]:
-    """Check each configured provider's key and model with a free metadata call.
+    """Check each configured provider with a tiny real generation request.
 
     Having a key set says nothing about whether it works (a revoked key once
-    left chat fully down while health reported "ok"), so this asks each provider
-    to look up the configured model.  Results are cached for five minutes so
-    health checks don't eat into free-tier request quotas.
+    left chat fully down while health reported "ok"), and neither does looking
+    the model up: Google kept listing gemini-2.5-flash while refusing to
+    generate with it for new projects.  So this asks for a one-word reply, the
+    same call chat makes.  Results are cached for five minutes so health checks
+    barely touch free-tier quotas.
     """
     global _probe_cache
     now = time.monotonic()
@@ -283,28 +299,41 @@ async def probe_providers(force: bool = False) -> dict[str, ProviderStatus]:
         return _probe_cache[1]
 
     results: dict[str, ProviderStatus] = {}
-    async with httpx.AsyncClient(timeout=10.0) as client:
+    ping = "Reply with the single word: ok"
+    async with httpx.AsyncClient(timeout=15.0) as client:
         for cfg in (GEMINI_CONFIG, GROQ_CONFIG):
             if not cfg.api_key:
                 results[cfg.name] = ProviderStatus(False, "no API key configured")
                 continue
-            headers = (
-                {"x-goog-api-key": cfg.api_key}
-                if cfg.name == "gemini"
-                else {"Authorization": f"Bearer {cfg.api_key}"}
-            )
+            if cfg.name == "gemini":
+                url = f"{cfg.base_url}/models/{cfg.model}:generateContent"
+                headers = {"x-goog-api-key": cfg.api_key}
+                body: dict[str, Any] = {
+                    "contents": [{"role": "user", "parts": [{"text": ping}]}],
+                    "generationConfig": _gemini_generation_config(0.0, 20),
+                }
+            else:
+                url = f"{cfg.base_url}/chat/completions"
+                headers = {"Authorization": f"Bearer {cfg.api_key}"}
+                body = {
+                    "model": cfg.model,
+                    "messages": [{"role": "user", "content": ping}],
+                    "max_tokens": 20,
+                }
+            start = time.monotonic()
             try:
-                resp = await client.get(
-                    f"{cfg.base_url}/models/{cfg.model}", headers=headers
-                )
+                resp = await client.post(url, headers=headers, json=body)
             except httpx.RequestError as exc:
                 results[cfg.name] = ProviderStatus(False, f"unreachable: {exc}"[:120])
                 continue
             if resp.status_code == 200:
-                results[cfg.name] = ProviderStatus(True, f"{cfg.model} reachable")
+                ms = (time.monotonic() - start) * 1000
+                results[cfg.name] = ProviderStatus(
+                    True, f"{cfg.model} answered in {ms:.0f} ms"
+                )
             else:
                 results[cfg.name] = ProviderStatus(
-                    False, f"{cfg.model}: HTTP {resp.status_code} {resp.text[:80]}"
+                    False, f"{cfg.model}: HTTP {resp.status_code} {resp.text[:120]}"
                 )
 
     _probe_cache = (now, results)
@@ -329,7 +358,7 @@ class LLMClient:
     @staticmethod
     def _has_fallback_after(cfg: ProviderConfig) -> bool:
         """True when a later provider could still answer if this one fails."""
-        order = (GEMINI_CONFIG, GROQ_CONFIG)
+        order = _provider_order()
         later = order[order.index(cfg) + 1 :] if cfg in order else ()
         return any(p.api_key and not _breaker_for(p).is_open() for p in later)
 
@@ -346,7 +375,7 @@ class LLMClient:
         if cached is not None:
             return cached
 
-        for provider_cfg in (GEMINI_CONFIG, GROQ_CONFIG):
+        for provider_cfg in _provider_order():
             if not provider_cfg.api_key:
                 continue
             # Skip a provider whose circuit breaker is open (recent fatal error)
@@ -501,10 +530,7 @@ class LLMClient:
         contents: list[dict[str, Any]] = [{"role": "user", "parts": [{"text": prompt}]}]
         body: dict[str, Any] = {
             "contents": contents,
-            "generationConfig": {
-                "temperature": temperature,
-                "maxOutputTokens": max_tokens,
-            },
+            "generationConfig": _gemini_generation_config(temperature, max_tokens),
         }
         if system_prompt:
             body["systemInstruction"] = {"parts": [{"text": system_prompt}]}
@@ -560,7 +586,7 @@ class LLMClient:
             "model": cfg.model,
             "messages": messages,
             "temperature": temperature,
-            "max_tokens": max_tokens,
+            "max_tokens": min(max_tokens, settings.groq_max_tokens),
             "frequency_penalty": 1.2,
         }
         headers = {
@@ -598,11 +624,13 @@ class LLMClient:
         temperature: float = 0.3,
         max_tokens: int = 1024,
     ) -> AsyncGenerator[str, None]:
-        """Yield response tokens.  Gemini → Groq streaming → non-streaming fallback."""
-        for cfg, stream_method in [
-            (GEMINI_CONFIG, self._stream_gemini_tokens),
-            (GROQ_CONFIG, self._stream_groq_tokens),
-        ]:
+        """Yield response tokens: primary → backup streaming → non-streaming fallback."""
+        for cfg in _provider_order():
+            stream_method = (
+                self._stream_gemini_tokens
+                if cfg.name == "gemini"
+                else self._stream_groq_tokens
+            )
             if not cfg.api_key:
                 continue
             # Skip a provider whose circuit breaker is open (recent fatal error)
@@ -691,10 +719,7 @@ class LLMClient:
         contents: list[dict[str, Any]] = [{"role": "user", "parts": [{"text": prompt}]}]
         body: dict[str, Any] = {
             "contents": contents,
-            "generationConfig": {
-                "temperature": temperature,
-                "maxOutputTokens": max_tokens,
-            },
+            "generationConfig": _gemini_generation_config(temperature, max_tokens),
         }
         if system_prompt:
             body["systemInstruction"] = {"parts": [{"text": system_prompt}]}
@@ -744,7 +769,7 @@ class LLMClient:
             "model": cfg.model,
             "messages": messages,
             "temperature": temperature,
-            "max_tokens": max_tokens,
+            "max_tokens": min(max_tokens, settings.groq_max_tokens),
             "frequency_penalty": 1.2,
             "stream": True,
         }
